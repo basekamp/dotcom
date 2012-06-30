@@ -1,0 +1,4 @@
+; $Id: switchtheme.info,v 1.4.2.1 2008/09/18 23:21:10 sun Exp $
+name = Switchtheme
+description = Allows switching the theme in various means.
+core = 6.x

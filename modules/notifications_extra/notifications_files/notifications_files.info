@@ -1,0 +1,14 @@
+; $Id: notifications_files.info,v 1.1.2.3 2009/08/08 03:11:45 danepowell Exp $ 
+name = Attached files
+description = Attaches information regarding attachments to nodes to outgoing notifications
+package = "Notifications"
+dependencies[] = notifications
+dependencies[] = upload
+dependencies[] = notifications_content
+core = 6.x
+; Information added by drupal.org packaging script on 2009-06-27
+version = "6.x-2.x-dev"
+core = "6.x"
+project = "notifications_extra"
+datestamp = "1246105347"
+

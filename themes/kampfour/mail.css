@@ -1,0 +1,47 @@
+/** Custom mail.css for Mime Mail **/
+body#mimemail-body
+{
+  font-size: 100%; /* Fixes exaggerated text resizing in IE6 and IE7 */    
+  font-family: Verdana, Tahoma, Arial, Helvetica, "Bitstream Vera Sans", sans-serif;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: normal;
+  font-family: Helvetica, Arial, sans-serif;
+}
+
+h1
+{
+  font-size: 2em;
+  line-height: 1.3em;
+  margin-top: 0;
+  margin-bottom: 0.5em;
+}
+
+h2
+{
+  font-size: 1.5em;
+  line-height: 1.3em;
+  margin-top: 1.334em;
+  margin-bottom: 0.667em;
+}
+
+p, ul, ol, dl, pre, table, fieldset, blockquote
+{
+  margin: 1em 0;
+}
+
+/* add a little style */
+blockquote {
+  margin: 1em 2em;
+  font-style: italic;
+  font-size: 90%;
+  color: gray;
+}
+
+img.event-image {
+  float: right;
+  margin-bottom: 2em;
+  margin-left: 2em;
+  border: 0 none;
+}

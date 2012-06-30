@@ -1,0 +1,4 @@
+; $Id: userprotect.info,v 1.5 2007/11/26 20:41:12 thehunmonkgroup Exp $
+name = "User Protect"
+description = "Allows admins to protect users from being edited or deleted, on a per-user basis."
+core = "6.x"

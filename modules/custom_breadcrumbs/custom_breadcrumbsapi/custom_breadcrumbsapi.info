@@ -1,0 +1,15 @@
+name = Custom Breadcrumbs API
+package = Custom Breadcrumbs
+dependencies[] = custom_breadcrumbs
+description = Provides a simple API to set breadcrumbs on module pages not served by other custom breadcrumbs submodules.
+core = 6.x
+
+
+
+
+; Information added by drupal.org packaging script on 2011-12-04
+version = "6.x-2.x-dev"
+core = "6.x"
+project = "custom_breadcrumbs"
+datestamp = "1323000901"
+

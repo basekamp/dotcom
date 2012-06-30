@@ -1,0 +1,86 @@
+<?php
+// $Id: wp_comments.module,v 1.2 2008/05/06 06:57:05 eaton Exp $
+
+/**
+ * An implementation of hook_theme_registry_alter()
+ * Substitute our own custom version of the standard 'theme_form_element' function.
+ * If the theme has overridden it, we'll be bypassed, but in most cases this will
+ * work nicely..
+ *
+ * @return void
+ **/
+function wp_comments_theme_registry_alter(&$theme_registry) {
+  if (!empty($theme_registry['form_element'])) {
+    $theme_registry['form_element']['function'] = 'wp_comments_form_element';
+  }
+}
+
+
+
+/**
+ * An implementation of hook_form_alter()
+ * Tweak the comment form, and add the #wp_comments_element flag to any textareas
+ * so our custom theme function can intercept and shuffle the labels around.
+ *
+ * @return void
+ **/
+function wp_comments_form_alter(&$form, &$form_state, $form_id) {
+  if ($form_id == 'comment_form') {
+    foreach (element_children($form) as $key) {
+      if (isset($form[$key]) && isset($form[$key]['#type']) && $form[$key]['#type'] == 'textfield') {
+        $form[$key]['#wp_comments_element'] = TRUE;
+        $form[$key]['#size'] = 40;
+      }
+    }
+
+    if (isset($form['_author'])) {
+      $form['_author']['#type'] = 'markup';
+      $form['_author']['#value'] = t('Logged in as !user.', array('!user' => $form['_author']['#value']));
+    }
+
+    $form['comment_filter']['comment']['#rows'] = 10;
+    unset($form['comment_filter']['comment']['#title']);
+  }
+}
+
+
+/**
+ * A hacked version of theme_form_element()
+ * This version adds a custom CSS class, makes elements inline, and (most
+ * importantly) puts the labels on the right side of the element rather than the
+ * left. This allows the module to simulate WordPress style comment forms. Yes.
+ * All that hacking just for this. Wrong, isn't it?
+ *
+ * @return A formatted HTML form element with wrapper divs.
+ **/
+function wp_comments_form_element($element, $value) {
+  if (empty($element['#wp_comments_element'])) {
+    return theme_form_element($element, $value);
+  }
+  else {
+    $t = get_t();
+
+    $output = '<div class="form-item container-inline wp-comments-element"';
+    if (!empty($element['#id'])) {
+      $output .= ' id="'. $element['#id'] .'-wrapper"';
+    }
+    $output .= ">\n";
+    $output .= " $value\n";
+
+    $required = !empty($element['#required']) ? '<span class="form-required" title="'. $t('This field is required.') .'">('. $t('required') .')</span>' : '';
+
+    if (!empty($element['#title'])) {
+      $title = $element['#title'];
+      if (!empty($element['#id'])) {
+        $output .= ' <label for="'. $element['#id'] .'">'. $t('!title !required', array('!title' => filter_xss_admin($title), '!required' => $required)) ."</label>\n";
+      }
+      else {
+        $output .= ' <label>'. $t('!title !required', array('!title' => filter_xss_admin($title), '!required' => $required)) ."</label>\n";
+      }
+    }
+
+    $output .= "</div>\n";
+
+    return $output;
+  }
+}

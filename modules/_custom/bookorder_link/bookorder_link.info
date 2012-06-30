@@ -1,0 +1,6 @@
+; $Id$
+name = Book order link 
+description = "Adds link to quickly reorder book pages."
+dependencies[] = book
+core = 6.x
+

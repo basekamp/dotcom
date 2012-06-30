@@ -1,0 +1,51 @@
+<?php
+
+// $Id$
+
+/**
+ * @file
+ * Custom tokens for Basekamp.com.
+ *
+ * @ingroup token
+ */
+
+/**
+ * Implementation of hook_token_list().
+ */
+function kustom_tokens_token_list($type = 'all') {
+  if ($type == 'global' || $type == 'all') {
+    // Global tokens here.
+  }
+  if ($type == 'node' || $type == 'all') {
+    // Node tokens here.
+    #$tokens['node']['body'] = t('Email node body');
+    $tokens['node']['email-thumbnail'] = t('Email thumbnail');
+    $tokens['node']['email-h1titlelink'] = t('Email h1 title link');
+    $tokens['node']['email-commentlink'] = t('Email comment link');
+  }
+
+  return $tokens;
+}
+
+/**
+ * Implementation of hook_token_values().
+ */
+function kustom_tokens_token_values($type, $object = NULL) {
+  $values = array();
+  switch ($type) {
+    case 'global':
+      // Global tokens here.
+      break;
+    case 'node':
+      // Node tokens here.
+      $node = $object;
+      $event_image = theme('imagecache', 'medium-square', "$node->field_event_images['filepath']", NULL, NULL, array('class' => 'event-image'));
+      #$values['body'] = preg_replace(array('/\<\/p\>/','/\n/'),' ',$node->body);
+      $values['email-thumbnail']  = l($event_image, "node/$node->nid", array('html' => TRUE, 'absolute' => TRUE));
+      $values['email-h1titlelink'] = l("<h1>$node->title</h1>", "$node->nid", array('html' => TRUE, 'absolute' => TRUE));
+      $values['email-commentlink'] = l("Comment here", "$node->nid", array('absolute' => TRUE, 'fragment' => 'comments'));
+      break;
+  }
+  return $values;
+}
+

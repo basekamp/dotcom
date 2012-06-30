@@ -1,0 +1,360 @@
+<?php
+// $Id: linodef_buttonsapi.module,v 1.1.2.5 2009/07/06 12:02:03 roidanton Exp $
+
+/**
+ * @file
+ * Provides data with Linodef tags for editorbuttons and creates pages & forms for buttons.
+ *
+ * 1) Retrieve the data for Linodef submodules that adds (or provides functions for) contrib editor buttons and return a formatted list of items with links.
+ * 2) Buttons
+ *  a. Provide a popup window.
+ *  b. Provide autocomplete button.
+ * 3) Admin settings.
+ *
+ * @package Linodef
+ * @author Roi Danton
+ */
+
+/**
+ * 1) Retrieve the data for Linodef submodules that adds (or provides functions for) contrib editor buttons and return a formatted list of items with links.
+ */
+
+/**
+ * Create a formatted list of items with links.
+ *
+ * Adds the key 'content' containing the itemlink to the output of linodef_buttonsapi_rawdata().
+ *
+ * @param $calling_module
+ *      The name of the module that calls this function. Needed for javascript file and function to use when clicked on an item.
+ * @param string $drupal_element
+ *      The element to retrieve the data from. This has to be a supported element type. See Linodef advanced help.
+ * @param string $option_string_path
+ *      Contains tag options.
+ * @return array
+ *          - content: The html list with the items or a message ready for Javascript.
+ *          - for the other keys see return value of linodef_buttonsapi_rawdata()
+ *
+ * @see linodef_buttonsapi_rawdata(), _linodef_buttonsapi_popup()
+ */
+function linodef_buttonsapi_itemlist($calling_module, $drupal_element, $option_string_path) {
+	// Retrieve the data.
+	$button_data = linodef_buttonsapi_rawdata($drupal_element, $option_string_path);
+
+	// Removing old variables from Linodef <=rc2 installations (now done with caching). These lines should be removed upon rc4.
+	variable_del('linodef_buttonsapi_buttondata');
+	variable_del('linodef_buttonsapi_submitted_tag');
+
+	if (is_array($button_data)) {
+		$output = $button_data;
+		// Format output.
+		foreach ($button_data['data'] as $value) {
+			// l() shows character binary for some character, not applicable here. $links[] = l($value['desc'], '#', array('attributes' => array( 'onclick' => $calling_module .'_onclick(\''. $value['tag'] .';return false;\')' )));
+			$value['tag'] = str_replace('"', "\xf4\x80\x81\x8c", $value['tag']);
+			// For compatibility with Javascript/Perl replace function.
+			$value['tag'] = utf8_encode($value['tag']);
+			$links[] = '<a href="#" title="'. $value['tag'] .'" onclick="'. $calling_module .'_onclick(\''. $value['tag'] .'\');return false;">'. $value['desc'] .'</a>';
+		}
+		$output['content'] = theme('item_list', $links);
+	}
+	else {
+		// Likely a hint or warning message, e.g. when contenttype not found or similar.
+		$output['content'] = drupal_to_js($button_data);
+	}
+	return $output;
+}
+
+/**
+ * Choose which method to use to get the data.
+ *
+ * Furthermore here the string is set for the tag which includes no links. Show terms by contenttype removed as user should use vid instead.
+ *
+ * @param string $drupal_element
+ *    The element to retrieve the data from. This has to be a supported element type. See Linodef advanced help.
+ * @param string $option_string_path
+ *    Containing tag options as bin or hex.
+ * @return
+ *    array
+ *      As functions in linodef_buttonsapi.inc return, additionally updated the key:
+ *      - options: Added those linodef tag options part of $option_string_path for theme output.
+ *    string with error message
+ *
+ * @see _linodef_buttons_getfieldsbyfieldname(), _linodef_buttons_gettermsbyvid(), _linodef_buttons_getnodesbycontenttype()
+ */
+function linodef_buttonsapi_rawdata($drupal_element, $option_string_path) {
+	include_once(drupal_get_path('module', 'linodef_buttonsapi') .'/includes/linodef_buttonsapi.inc');
+
+	$options = linodef_buttonsapi_validate_tagoptions($option_string_path);
+	$option_string = $options['option_string'] ? $options['option_string'] : '';
+
+	if ($drupal_element == "getallviews") {
+		$output = _linodef_buttonsapi_getallviews($option_string);
+	}
+	// Retrieve element list using views.
+	elseif (substr($drupal_element, 0, 5) == "view_") {
+		$drupal_element = substr($drupal_element, 5);
+		$view_display = NULL;
+		$view_args = NULL;
+		if (($pos = strpos($drupal_element, "-")) !== FALSE) {
+			$view_display = substr($drupal_element, -(strlen($drupal_element)-$pos-1));
+			$drupal_element = substr($drupal_element, 0, $pos);
+			if (($pos = strpos($view_display, "-")) !== FALSE) {
+				$view_args = substr($view_display, -(strlen($view_display)-$pos-1));
+				$view_display = substr($view_display, 0, $pos);
+			}
+		}
+		// Currently display and args are not allowed. The separation in $drupal_element has to be path compatible (or use hex as with options).
+		$output = _linodef_buttonsapi_getelementsbyviewname($drupal_element, $view_display, $view_args, $option_string);
+	}
+	// Backwards compatibility for Linodef versions <RC3.
+	// Fields by name.
+	elseif (substr($drupal_element, 0, 6) == "field_") {
+		$output = _linodef_buttonsapi_getfieldsbyfieldname($drupal_element, $option_string);
+	}
+	// Taxonomy terms by vid.
+	elseif (preg_match("@([0-9]+)@", $drupal_element)) {
+
+		/*// Remove tag options that are not needed for terms: translation.
+		if ($options['translation']) { unset($options['translation']); }
+		$option_string = preg_replace("@,translation=([a-zA-Z]+)@", "", $option_string);*/
+
+		$output = _linodef_buttonsapi_gettermsbyvid($drupal_element, $option_string);
+	}
+	//Nodes by content type.
+	else {
+		$output = _linodef_buttonsapi_getnodesbycontenttype($drupal_element, $option_string);
+	}
+	if (is_array($output)) {
+		// If set by the functions above.
+		if (is_array($output['options'])) {
+			$output['options'] += $options['options'] ? $options['options'] : array();
+		}
+		else {
+			$output['options'] = $options['options'] ? $options['options'] : NULL;
+		}
+	}
+	return $output;
+}
+
+/**
+ * Creates an array of Linodef tag options.
+ * Only keeps valid options and types (nid, tid, viewid etc) are excluded.
+ *
+ * @param string $option_string
+ *    May contain options as bin or hex string. For supported options see linodef_create_valid_tag_option_array(), other option don't do anything and no error message is returned.
+ * @return
+ *    array
+ *      As linodef_create_valid_tag_option_array(), additional:
+ *      - option_string: validated version of $option_string
+ *
+ * @see linodef_buttonsapi_rawdata(), linodef_buttonsapi_create_path()
+ */
+function linodef_buttonsapi_validate_tagoptions($option_string) {
+	if (is_string($option_string) && !empty($option_string)) {
+
+		// Check if modified by linodef_buttonsapi_create_path().
+		$is_hex = TRUE;
+		$checkhex = count_chars($options_string, 1);
+		$hexchr = array(48=>0,49=>0,50=>0,51=>0,52=>0,53=>0,54=>0,55=>0,56=>0,57=>0,97=>0,98=>0,99=>0,100=>0,101=>0,102=>0);
+		foreach ($checkhex as $chr -> $count) {
+			if (!array_key_exists($chr, $hexchr)) {
+				$is_hex = FALSE;
+				break;
+			}
+		}
+		if (is_hex) {
+			$option_string = pack('H*', $option_string);
+		}
+		$output = linodef_create_valid_tag_option_array($option_string);
+		// Create validated string.
+		foreach ($output['options'] as $option => $value) {
+			if ($output['valid_options'][$option]['value'] === FALSE || $value === '' || $value === NULL ) {
+				$output['option_string'] .= ','. $option;
+			}
+			else {
+				$output['option_string'] .= ','. $option .'="'. $value .'"';
+			}
+		}
+	}
+	if (!$output) {
+		$output = FALSE;
+	}
+	return $output;
+}
+
+/**
+ * Converts linodef options into a hex useable as path.
+ *
+ * @param string $option_string
+ * @return
+ *      String which is a valid url.
+ *
+ * @see linodef_buttons_bueditor_buttons()
+ */
+function linodef_buttonsapi_create_path($option_string) {
+	return bin2hex($option_string);
+}
+
+/**
+ * 2) Buttons.
+ *  a) Linodef Pages: Popup window.
+ *  b) Linodef Forms: Autocomplete.
+ */
+
+/**
+ * Implementation of hook_menu().
+ */
+function linodef_buttonsapi_menu() {
+	// Popup with item list.
+	$items['linodef/popup/%/%/%'] = array(
+		'type' => MENU_CALLBACK,
+		'title' => 'Linodef popup',
+		'page callback' => '_linodef_buttonsapi_popup',
+		'page arguments' => array(1, 2, 3, 4),
+		'file' => 'linodef_buttonsapi.pages.inc',
+		'file path' => drupal_get_path('module', 'linodef_buttonsapi') .'/theme',
+		'access arguments' => array('access content'),
+	);
+	// Popup with autocomplete button. Done that way because autocomplete mustn't be a part of the editors form.
+	$items['linodef/popup-ac/%/%/%'] = array(
+		'type' => MENU_CALLBACK,
+		'title' => 'Linodef autocomplete popup',
+		'page callback' => '_linodef_buttonsapi_popup',
+		'page arguments' => array(1, 2, 3, 4),
+		'file' => 'linodef_buttonsapi.pages.inc',
+		'file path' => drupal_get_path('module', 'linodef_buttonsapi') .'/theme',
+		'access arguments' => array('access content'),
+	);
+	// Required for autocomplete list.
+	$items['linodef/autocomplete'] = array(
+		'type' => MENU_CALLBACK,
+		'title' => 'Linodef autocomplete',
+		'page callback' => '_linodef_buttonsapi_autocomplete',
+		'access arguments' => array('access content'),
+	);
+	return $items;
+}
+
+/**
+ * Implementation of hook_theme().
+ *
+ * For the arguments refer to the theme() function call in _linodef_buttonsapi_popup().
+ */
+function linodef_buttonsapi_theme() {
+	// Popup window for editorbuttons-api.
+	$hooks['linodef_buttonsapi_popup'] = array(
+		'arguments' => array('content' => NULL,
+		                     'explanation' => NULL,
+		                     'calling_module' => NULL,
+		                     'element_name' => NULL,
+		                     'title' => 'Linodef popup',
+		                    ),
+		'file' => 'linodef_buttonsapi.pages.inc',
+		'path' => drupal_get_path('module', 'linodef_buttonsapi') .'/theme',
+		'template' => 'linodef-buttonsapi-popup',
+	);
+	return $hooks;
+}
+
+/**
+ * Implementation of hook_form().
+ *
+ * Create autocomplete textfield.
+ *
+ * @see _linodef_buttonsapi_popup()
+ */
+function linodef_buttonsapi_autocomplete_form($form_state, $calling_module, $drupal_element, $option_string_path) {
+	$form['linodef_buttonsapi_autocomplete'] = array(
+		'#type' => 'textfield',
+		'#title' => '',
+		'#default_value' => '',
+		'#autocomplete_path'  => 'linodef/autocomplete/'. $calling_module .'/'. $drupal_element .'/'. $option_string_path,
+		/* maybe in a later version with Ajax '#ahah' => array(
+			'wrapper' => $editor_textfield_id,
+			'method' => 'append',
+		),*/
+	);
+	$form['linodef_buttonsapi_autocomplete_submit'] = array(
+		'#type' => 'submit',
+		'#value' => t('Submit'),
+	);
+	return $form;
+}
+
+/**
+ * Validate the autocomplete form.
+ */
+function linodef_buttonsapi_autocomplete_form_validate($form, &$form_state) {
+	// Cache id set on page function.
+	$cid = cache_get('linodef_buttonsapi_cid');
+
+	if ($form_state['values']['linodef_buttonsapi_autocomplete'] == '') {
+		form_set_error('', t('Enter or select a tag that you want to include into your text.'));
+	}
+	elseif (($button_data = cache_get($cid->data .'_buttondata')) != 0) {
+		// variable_del('linodef_buttonsapi_buttondata'); // Variable created on popup display again either.
+		$success = FALSE;
+		foreach ($button_data->data as $value) {
+			// Allow tags with additional user input: comment or additional options (last one works only if comment not set).
+			$value['tag'] = strtr($value['tag'], array(']' => ''));
+			if (strpos($form_state['values']['linodef_buttonsapi_autocomplete'], $value['tag']) !== FALSE && substr($form_state['values']['linodef_buttonsapi_autocomplete'], -1) == ']') {
+				$success = TRUE;
+			}
+		}
+		if ($success === FALSE) {
+				form_set_error('', t('Tag %tag is not valid or not part of this button. Either select another tag from the autocomplete list, use a different editor button or paste the tag you have entered manually into your text.', array('%tag' => $form_state['values']['linodef_buttonsapi_autocomplete'])));
+		}
+	}
+}
+
+/**
+ * Submit the autocomplete form.
+ *
+ * @see template_preprocess_linodef_buttonsapi_popup()
+ */
+function linodef_buttonsapi_autocomplete_form_submit($form, &$form_state) {
+	drupal_set_message(t("The tag %tag has been submitted. In case it doesn't appear in your text don't worry but manually copy & paste the tag.", array('%tag' => $form_state['values']['linodef_buttonsapi_autocomplete'])));
+	
+	// Caching the tag to submit it to the editors textarea.
+	$cid = cache_get('linodef_buttonsapi_cid');
+	cache_set($cid->data .'_submit', $form_state['values']['linodef_buttonsapi_autocomplete'], 'cache', CACHE_TEMPORARY);
+}
+
+/**
+ * Autocomplete Form callback: Retrieve a pipe delimited string of autocomplete suggestions for existing elements.
+ *
+ * Parameters sent from #autocomplete_path at hook_form(). The parameter after them is the inserted text by the user.
+ *
+ * @param $calling_module
+ *      The name of the module that calls this function. Needed for javascript file and function to use when clicked on/submitting an item.
+ * @param string $drupal_element
+ *      The element to retrieve the data from. This has to be a supported element type. See Linodef advanced help.
+ * @param string $option_string_path
+ *      Contains tag options.
+ * @param string $string
+ *      String the user entered in textfield.
+ */
+function _linodef_buttonsapi_autocomplete($calling_module, $drupal_element, $option_string_path, $string = '') {
+	$matches = array();
+	$button_data = linodef_buttonsapi_rawdata($drupal_element, $option_string_path);
+	foreach ($button_data['data'] as $value) {
+		if (!empty($string)) {
+			if (strpos($value['desc'], $string) !== FALSE) {
+				$matches[$value['tag']] = '<div class="reference-autocomplete">'. $value['desc'] .'</div>';
+			}
+		}
+	}
+	print drupal_to_js($matches);
+	exit();
+}
+
+/**
+ * 3) Admin settings.
+ *
+ * Implementation of hook_form_[form_id]_alter().
+ *
+ * Extends Linodef settings with Linodef Buttons API settings.
+ */
+function linodef_buttonsapi_form_linodef_theme_settings_alter(&$form, $form_state) {
+	include_once(drupal_get_path('module', 'linodef_buttonsapi') .'/theme/linodef_buttonsapi.admin.inc');
+	_linodef_buttonsapi_form_linodef_theme_settings_alter($form, $form_state);
+}

@@ -1,0 +1,17 @@
+/* $Id: comment_notify.css,v 1.2 2009/02/16 21:58:28 greggles Exp $ */
+#edit-notify-type-1-wrapper, #edit-notify-type-2-wrapper {
+  float: left;
+  display: inline;
+}
+
+#edit-notify-type-1-wrapper {
+  margin-left: 2em;  
+}
+
+#notify_clear {
+  clear: both;
+}
+
+#edit-notify-type-2-wrapper {
+  margin-left: 1em;
+}

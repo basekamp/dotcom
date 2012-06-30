@@ -1,0 +1,290 @@
+/*
+ * $Id: markdowneditor.css,v 1.1.2.1.2.2 2009/02/02 22:37:27 solipsist Exp $
+ */
+
+/**
+ * @file
+ * A test suite for selected functionality from MarkdownEditor.
+ *
+ * @author Jakob Persson <jakob@imbridge.com>
+ * @author Adam Bergmark
+ */
+
+#editor-dialog {
+  background-color:white;
+}
+
+#editor-dialog .cnt {
+}
+
+#editor-dialog .cnt textarea,
+#editor-dialog .cnt select {
+  width:150px;
+}
+
+#editor-dialog .cnt table input {
+  float:left;
+}
+
+#editor-dialog .cnt .imce-button {
+  display:block;
+  width:50x;
+  float:left;
+  margin-left:5px;
+}
+
+#editor-dialog .cnt form {
+  display:block;
+  max-height:460px;
+  overflow:auto;
+}
+
+#editor-dialog .cnt td {
+  vertical-align:top;
+}
+
+#editor-dialog .cnt td label {
+  display:block;
+  margin-top:5px;
+}
+
+#editor-dialog .cnt .td-element {
+  min-width:260px;
+}
+
+#editor-dialog fieldset {
+  border: 1px solid #B3D8EF;
+  background-color:transparent;
+  background-image:none;
+}
+
+#editor-dialog table,
+#editor-dialog tbody {
+  margin:0;
+}
+
+
+/*******************************************************************************
+ * BUTTONS
+ ******************************************************************************/
+
+.markdowneditor-dialog-help-button {
+  float:left;
+  width:30px;
+}
+
+.markdowneditor-dialog-cancel, .markdowneditor-dialog-submit {
+  width:60px;
+}
+
+.markdowneditor-dialog-cancel {
+  float:right;
+}
+
+.markdowneditor-dialog-submit {
+  float:right;
+  margin-right:5px;
+}
+
+
+/*******************************************************************************
+ * CLEARFIX
+ ******************************************************************************/
+
+.clearfix:after,
+#editor-dialog:after,
+#markdowneditor-dialog-definition-list .content-row:after,
+#markdowneditor-dialog-definition-list .header-row:after {
+  content: "."; 
+  display: block; 
+  height: 0; 
+  clear: both; 
+  visibility: hidden;
+}
+
+.clearfix,
+#editor-dialog,
+#markdowneditor-dialog-definition-list .content-row,
+#markdowneditor-dialog-definition-list .header-row {
+  display: inline-block;
+}
+
+
+/*******************************************************************************
+ * IMAGE & LINK
+ ******************************************************************************/
+
+#markdowneditor-dialog-image .td-element input,
+#markdowneditor-dialog-link .td-element input {
+  width:250px;
+}
+
+#markdowneditor-dialog-link tbody,
+#markdowneditor-dialog-image tbody {
+  display:block;
+  padding-bottom:10px;
+}
+
+#markdowneditor-dialog-image #dialog_element_3,
+#markdowneditor-dialog-link #dialog_element_3 {
+  width:163px;
+}
+
+
+/*******************************************************************************
+ * DEFINITION LIST
+ ******************************************************************************/
+
+#markdowneditor-dialog-definition-list .modification input {
+  display:block;
+  clear:both;
+  width:30px;
+  margin-bottom:3px;
+}
+
+#markdowneditor-dialog-definition-list form {
+  min-width:380px;
+  padding:10px;
+  margin-bottom:10px;
+  width: 420px;
+}
+
+#markdowneditor-dialog-definition-list .content-container {
+/*  padding-bottom:10px;
+  margin-bottom:10px;*/
+}
+
+#markdowneditor-dialog-definition-list .content-row {
+  padding:5px;
+  background-color:#B3D8EF;
+  margin-top:10px;
+}
+
+#markdowneditor-dialog-definition-list .content-row.first {
+  margin-top:0;
+}
+
+#markdowneditor-dialog-definition-list .header-row {
+  margin-bottom:8px;
+}
+
+#markdowneditor-dialog-definition-list .header-cell {
+  width:175px;
+  float:left;
+}
+
+#markdowneditor-dialog-definition-list .content-row .title-cell {
+  float:left;
+  margin-right:3px;
+}
+
+#markdowneditor-dialog-definition-list .content-row .description-cell {
+  float:left;
+  margin-left:3px;
+  margin-right:3px;
+}
+
+#markdowneditor-dialog-definition-list .content-row .modification {
+  float:left;
+}
+
+#markdowneditor-dialog-definition-list .content-row .description-cell textarea {
+  display:block;
+  height:65px;
+}
+
+#markdowneditor-dialog-definition-list .add-button {
+  display:block;
+  clear:right;
+}
+
+#markdowneditor-dialog-definition-list .prepend-row-button {
+  visibility:hidden;
+}
+
+#markdowneditor-dialog-definition-list .first .prepend-row-button {
+  visibility:visible;
+}
+
+#markdowneditor-dialog-definition-list .modification input {
+  display:block;
+  margin-left:3px;
+  width:30px;
+}
+
+
+/*******************************************************************************
+ * TABLE
+ ******************************************************************************/
+
+#markdowneditor-dialog-table .header-row input {
+  border: 2px solid #2388BF;
+}
+
+#markdowneditor-dialog-table button {
+  width:30px;
+}
+
+#markdowneditor-dialog-table th {
+  font-weight:normal;
+}
+
+#markdowneditor-dialog-table form {
+  max-width:600px;
+  padding:10px;
+  padding-bottom:none;
+}
+
+#markdowneditor-dialog-table table {
+  display:block;
+  margin:0;
+}
+
+#markdowneditor-dialog-table tbody {
+  display:block;
+}
+
+#markdowneditor-dialog-table th {
+  border:none;
+}
+
+#markdowneditor-dialog-table .header-row td,
+#markdowneditor-dialog-table .content-row td {
+  background-color:#B3D8EF;
+  border-bottom:3px solid #EDF5FA;
+}
+
+
+#markdowneditor-dialog-table .header-row .remove-row-button {
+  visibility:hidden;
+}
+
+#markdowneditor-dialog-table .row-modification-container {
+  width:75px;
+}
+
+#markdowneditor-dialog-table .header-row .add-row-button,
+#markdowneditor-dialog-table .row-modification-container .add-row-button {
+  margin-left:5px;
+}
+
+#markdowneditor-dialog-table .column-modification-cell .prepend-column-button {
+  visibility:hidden;
+}
+
+#markdowneditor-dialog-table .column-modification-cell.first .prepend-column-button {
+  visibility:visible;
+}
+
+#markdowneditor-dialog-table .column-modification-cell button {
+  margin-right:5px;
+}
+
+#markdowneditor-dialog-table .column-modification-cell input {
+  float:none !important;
+}
+
+#markdowneditor-dialog-table .header-row input {
+  width:145px;
+}
+

@@ -1,0 +1,56 @@
+<?php
+// $Id: notifications_nice.module,v 1.1.2.1 2009/04/28 13:25:54 jareyero Exp $
+
+/**
+ * @file
+ * Nice js widget for subscriptions
+ * 
+ * Module written by Jose A. Reyero, Development Seed.
+ * 
+ * Idea and code by Moshe Weitzman, from http://groups.drupal.org/node/17779
+ */
+
+/**
+ * Implementation of hook_nodeapi().
+ */
+function notifications_nice_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
+  global $user;
+
+  if ($op == 'alter' && $a4 && ($options = notifications_ui_subscribe_options($user, 'node', $node))) {
+    notifications_nice_addons();
+    $links = notifications_ui_build_links($options);
+    $node->body .= notifications_nice_links($links);
+  }
+}
+
+/**
+ * Format links block
+ */
+function notifications_nice_links($links) {
+  // Visible part
+  $title = t('Subscriptions');
+  $output = '<a title="' . $title . '" href="#node_subscription_links" rel="#node_subscription_links" class="load-local">';
+  $src = base_path() . drupal_get_path('module', 'notifications_nice') . '/button_subscriptions.gif';
+  $output .= "<img src=\"$src\" alt=\"$title\" width=\"138\" height=\"41\">";
+  $output .= "</a>\n";
+  // Hidden part   
+  $output .= '<div id="node_subscription_links" style="display:none">';
+  $output .= theme('links', $links);
+  $output .= "</div>\n";
+  return $output; 
+}
+
+/**
+ * Load needed CSS and JS stuff
+ */
+function notifications_nice_addons() {
+  $module = drupal_get_path('module', 'notifications_nice');
+  $cluetip = $module . '/cluetip';
+  // Cluetip elements
+  drupal_add_css($cluetip. '/jquery.cluetip.css');
+  drupal_add_js($cluetip. '/jquery.cluetip.js');
+  drupal_add_js($cluetip. '/lib/jquery.hoverIntent.js');
+  // Add own module elements
+  drupal_add_js($module . '/notifications_nice.js');
+  drupal_add_css($module . '/notifications_nice.css');
+}

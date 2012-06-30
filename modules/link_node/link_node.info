@@ -1,0 +1,5 @@
+; $Id $
+name = "Link node"
+description = "Provides an input filter that allows a node to link to other nodes."
+
+core = 6.x

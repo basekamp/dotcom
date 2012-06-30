@@ -1,0 +1,469 @@
+<?php
+// $Id: linodef.module,v 1.1.2.8 2009/07/02 17:59:52 roidanton Exp $
+
+/**
+ * @file
+ * The main Linodef filter module with filter hooks and a unified message system for all Linodef modules.
+ *
+ * Linodef is a filter which filters ID tags, embeds elements and adds links to them.
+ *
+ * @package Linodef
+ * @author Roi Danton
+ */
+
+/**
+ * Implementation of hook_filter.
+ */
+function linodef_filter($op, $delta = 0, $format = -1, $text = '') {
+	if ($op == 'list') {
+		return array(
+			0 => t('Linodef - Insert elements & internal links.')
+		);
+	}
+
+	// Provides extensibility.
+	switch ($delta) {
+
+		case 0:
+
+			switch ($op) {
+				case 'description':
+					return t('Substitutes the ID of an element for its title or value & links to it. It supports options to alter the output.');
+
+				// Since lineodef will return a different result on each page load, we
+				// need to return TRUE for "no cache" to ensure that the filter is run
+				// every time the text is requested. Has a serious performance impact!
+				case 'no cache':
+					return TRUE;
+
+				// I tried to use the bytes 0xFE and 0xFF to replace < and > here. These bytes
+				// are not valid in UTF-8 data and thus unlikely to cause problems.
+				// This doesnt work with double quotes "", but we need this in order to execute
+				// the second preg_replace in filter.inc, so valid bytes U+10004C & U+1003CD
+				// have been used.
+				case 'prepare':
+					return preg_replace('@<#([0-9]+)>(.*?)</#>@s', "\xf4\x80\x81\x8c#$1\xf4\x80\x8f\x8d$2\xf4\x80\x81\x8c/#\xf4\x80\x8f\x8d", $text);
+
+				case 'process':
+					include_once(drupal_get_path('module', 'linodef') .'/includes/linodef-filter.inc');
+					return _linodef_filter_process($text, $format);
+				// case 'settings':
+					// Form to enter string/html for the case "access denied". -> http://drupal.org/node/335438
+			}
+			break;
+	}
+}
+
+/**
+ * Implementation of hook_filter_tips.
+ */
+function linodef_filter_tips($delta, $format, $long = FALSE) {
+	switch ($delta) {
+		case 0:
+			if ($long) {
+				include_once(drupal_get_path('module', 'linodef') .'/includes/linodef-filter-tips.inc');
+				return _linodef_filter_tips();
+			}
+			else {
+				return t('Embeds elements & internal links by ID (<a href="@format-tips-page">[#8], [#8:field_name], [#8:field_name comment], [#8,linktext="Your Text"], [#23,tid comment]</a>).', array('@format-tips-page' =>  url('filter/tips/'. $format, array('fragment' => 'linodef'))));
+			}
+			break;
+	}
+}
+
+/**
+ * Implementation of hook_menu().
+ */
+function linodef_menu() {
+	// Admin settings.
+	$items['admin/settings/linodef'] = array(
+		'title' => 'Linodef',
+		'description' => 'Adjust settings for Linodef',
+		'page callback' => 'drupal_get_form',
+		'page arguments' => array('linodef_theme_settings'),
+		'file' => 'linodef.admin.inc',
+		'file path' => drupal_get_path('module', 'linodef') .'/theme',
+		'access arguments' => array('administer site configuration'),
+	);
+	return $items;
+}
+
+/**
+ * Create an array of valid options.
+ * Valid options are:
+ *   - nolink: The embedded element is not linked.
+ *   - linktext: Instead of the node title, taxonomy term, field value etc this custom text will be linked.
+ *   - translation: If set the helper functions will check if the node has a translated node in the language this value has (e.g. de, en, es etc).
+ *   - viewdisplay: Use a certain view display.
+ *   - viewargs: Pass arguments to the view.
+ *   - viewtitle: Include view title and link to the view.
+ *
+ * Buttons API requires this function, too. So it is in modules main file.
+ *
+ * @param $option_string
+ *   The tag option(s) as string to prepare.
+ * @return array
+ *   - options
+ *     - key: the option without the value
+ *     - value: the option value without "", if option has no value then NULL
+ *   - id
+ *     - key: the entered id type(s)
+ *   - unknown
+ *     - not valid or empty options (key is "option" name)
+ *   - valid_id_types
+ *   - valid_options
+ *
+ * @see linodef_buttonsapi_validate_tagoptions() _linodef_filter_processoptions()
+ */
+function linodef_create_valid_tag_option_array($option_string) {
+	// Replace , inside "" with \xf4\x80\x81\x8c.
+	$preg = array(
+		'@(="[^"]*")@e' => 'str_replace(",", "\xf4\x80\x81\x8c", "$1")',
+	);
+	$option_string = preg_replace(array_keys($preg), array_values($preg), $option_string);
+
+	// Create the array to process basic validation.
+	// Several options separated by comma.
+	if (strpos($option_string, ',') !== FALSE) {
+		$option_array = explode(',', $option_string);
+		foreach ($option_array as $value) {
+			// If option with value.
+			if (($pos = strpos($value, '=')) !== FALSE) {
+				$option_key = substr($value, 0, $pos);
+				$value = substr($value, -(strlen($value)-$pos-1));
+			}
+			else {
+				$option_key = $value;
+				$value = NULL;
+			}
+			$options[$option_key] = $value;
+		}
+	}
+	// Only one option and therefore no separator.
+	else {
+		if (($pos = strpos($option_string, '=')) !== FALSE) {
+			$option_key = substr($option_string, 0, $pos);
+			$value = substr($option_string, -(strlen($option_string)-$pos-1));
+		}
+		else {
+			$option_key = $option_string;
+			$value = NULL;
+		}
+		$options[$option_key] = $value;
+	}
+
+	// Replace , back and remove "" from value.
+	foreach ($options as &$value) {
+		if (is_string($value)) {
+			$value = str_replace("\xf4\x80\x81\x8c", ",", $value);
+			$value = str_replace('"', "", $value);
+		}
+	}
+	unset($value);
+
+	// List of supported id types. Designed to be able to use array_key_exists() than in_array() because first one seems to be faster.
+	$valid_id_types = array(
+		'nid' => 'nid',         // Nodes.
+		'tid' => 'tid',         // Terms.
+		'viewid' => 'viewid'    // Views.
+	);
+
+	// List of options with valid id types.
+	$valid_options = array(
+		'nolink' => array(
+			'value' => FALSE,
+			'id_types' => $valid_id_types
+		),
+		'linktext' => array(
+			'value' => TRUE,
+			'id_types' => $valid_id_types
+		),
+		'translation' => array(
+			'value' => TRUE,
+			'id_types' => array('nid' => 'nid')
+		),
+		'viewtitle' => array(
+			'value' => FALSE,
+			'id_types' => array('viewid' => 'viewid')
+		),
+		'viewdisplay' => array(
+			'value' => TRUE,
+			'id_types' => array('viewid' => 'viewid')
+		),
+		'viewargs' => array(
+			'value' => TRUE,
+			'id_types' => array('viewid' => 'viewid')
+		),
+	);
+
+	// Create the validated array.
+	foreach ($options as $option => $value) {
+		if (array_key_exists($option, $valid_options)) {
+			$output['options'][$option] = $value;
+		}
+		elseif (array_key_exists($option, $valid_id_types)) {
+			$output['id'][$option] = $value;
+		}
+		else {
+			$output['unknown'][$option] = $value;
+		}
+	}
+
+	$output['valid_id_types'] = $valid_id_types;
+	$output['valid_options'] = $valid_options;
+	return $output;
+}
+
+/**
+ * Returns messages that are needed several times in the filter and Buttons API and thus should be identical and in modules root.
+ *
+ * Additionally the function supports custom messages and all messages can be set with Drupals message system, too.
+ * It heeds the admin setting for Linodef message levels and locations.
+ *
+ * @param array $message
+ *      - error:  An array with key = element type and value = element as well as a string defining the error type. Output is "t(Key) <em>value</em> t(type)". Allowed element types are:
+ *          - comment
+ *          - content type
+ *          - node
+ *          - field
+ *          - term
+ *          - view
+ *          - vocabulary
+ *          - type: A string that creates a message depending on its value (error type). Allowed values are "access denied" and "not found".
+ *      - warning: A default message with inline text replaces. Value is the text replacer and in most cases a string. Output depends on key. Provided keys (default messages) are:
+ *          - activate module: Info that the module set in value should be installed and activated (e.g. to use certain features).
+ *          - check variable: Check variable with name set in value.
+ *          - option ignored: Value must be an array with keys %id and %option.
+ *          - option unknown: Value must be an array with keys %id and %option.
+ *          - supported field types: Info message about the fieldtypes that are supported.
+ *      - explanation: A default subclause with inline text replaces. Value is the text replacer. Output depends on key. Provided keys (default messages) are:
+ *          - option fieldname set: Info message that fieldname only supports ID type nid.
+ *          - option not compatible with idtype: Value must be an array with keys %idtype and %option.
+ *          - option to use in tag id:  Value must be an array with keys %id and %option.
+ *      - custom: A string with a custom message. In most cases a subordinate clause of an error or warning messages for additional explanations. Value is outputted directly.
+ * @param bool $drupal_set_message
+ *      If TRUE Drupal will set a message, see drupal_set_message().
+ * @param string $drupal_set_message_type
+ *      User can override the default message type. Allowed values are "status", "warning" or "error".
+ * @return string
+ *      Returns a message.
+ *
+ * @see drupal_set_message() linodef_theme_settings()
+ */
+function linodef_message($message = array(), $drupal_set_message = FALSE, $drupal_set_message_type = NULL) {
+	// Message appearance, see linodef_theme_settings().
+	$message_location = variable_get('linodef_message_location', array('inline' => 'inline','page' => 'page'));
+	$message_location_none = (empty($message_location['page']) && empty($message_location['inline'])) ? TRUE : FALSE;
+	$message_level = variable_get('linodef_message_level', 'all');
+
+	if (is_array($message) && !$message_location_none) {
+		// Output sorted as input.
+		foreach ($message as $mainkey => $mainvalue) {
+			// Create an error message.
+			if (is_array($mainvalue) && substr($mainkey, 0, 5) == 'error') {
+				// Get elements if valid.
+				foreach ($mainvalue as $key => $value) {
+					if ($key != 'type') {
+						switch ($key) {
+							case 'comment':
+								$element[$key] = t('Comment');
+								break;
+							case 'content type':
+								$element[$key] = t('Content type');
+								break;
+							case 'field':
+								$element[$key] = t('Field');
+								break;
+							case 'node':
+								$element[$key] = t('Node');
+								break;
+							case 'term':
+								$element[$key] = t('Term');
+								break;
+							case 'view':
+								$element[$key] = t('View');
+								break;
+							case 'vocabulary':
+								$element[$key] = t('Vocabulary');
+								break;
+						}
+						$element[$key] ? $element[$key] .= ' <em>'. $value .'</em>' : $element[$key] = t('Unknown key %key with value %value for %variable in %function', array('%key' => $key, '%value' => $value, '%variable' => '$message[\''. $mainkey .'\']', '%function' => __FUNCTION__));
+					}
+				}
+				$element_string = implode(' & ', $element);
+				// Validate & set message with elements.
+				if (is_string($mainvalue['type'])) {
+					switch ($mainvalue['type']) {
+						case 'access denied':
+							// drupal_access_denied() doesn't fit here because no page should be returned and the pagetitle should not show "Access denied"
+							if ($message_level != 'critical') {
+								// Support for custom message along with heeding potx pot extraction process. Can't avoid error message of potx during extraction though.
+								if (variable_get('linodef_message_accessdenied', FALSE) != FALSE) {
+									$output_array['error'] = t(variable_get('linodef_message_accessdenied', 'Access to !element denied'), array('!element' => $element_string));
+								}
+								else {
+									$output_array['error'] = t('Access to !element denied', array('!element' => $element_string));
+								}
+							}
+							else {
+								// Immediately stop the message creation process if access messages aren't allowed.
+								return '';
+							}
+							break;
+						case 'not found':
+							$output_array['error'] = t('!element not found', array('!element' => $element_string));
+							break;
+						case 'no content':
+							$output_array['error'] = t('!element has no content', array('!element' => $element_string));
+							break;
+					}
+					if (!$output_array['error']) {
+						$output_array['error'] = t('Unknown error type %type for %variable of the first parameter of %function', array('%type' => $error['type'], '%variable' => '$message[\''. $mainkey .'\'][\'type\']', '%function' => __FUNCTION__));
+					}
+					// If $set_drupal_message this is used as type.
+					$drupal_set_message_type = isset($drupal_set_message_type) ? $drupal_set_message_type : 'error';
+				}
+			}
+			// Create a warning message. Could be part of a critical message.
+			if (is_array($mainvalue) && substr($mainkey, 0, 7) == 'warning' && ($message_level == 'all' || $drupal_set_message_type == 'error')) {
+				// Validate and set context.
+				foreach ($mainvalue as $key => $value) {
+					switch ($key) {
+						case 'activate module':
+							$warning[$key] = t('Install & activate module %module', array('%module' => $value));
+							break;
+						case 'check variable':
+							$warning[$key] = t('Check value for %variable or ask your site administrator.', array('%variable' => $value));
+							break;
+						case 'option ignored':
+							if ($value['%id'] && $value['%option']) {
+								$warning[$key] = t('Linodef tag with id %id ignores option %option', $value);
+							}
+							else {
+								$warning[$key] = t('Variable %variable of the first parameter of %function has to be an array with keys %keys', array('%variable' => '$message[\''. $mainkey .'\'][\''. $key .'\']', '%function' => __FUNCTION__, '%keys' => '%id and %option'));
+							}
+							break;
+						case 'option unknown':
+							if ($value['%id'] && $value['%option']) {
+								$warning[$key] = t('Linodef tag with id %id contains unknown option %option (all options must be written in lower case)', $value);
+							}
+							else {
+								$warning[$key] = t('Variable %variable of the first parameter of %function has to be an array with keys %keys', array('%variable' => '$message[\''. $mainkey .'\'][\''. $key .'\']', '%function' => __FUNCTION__, '%keys' => '%id and %option'));
+							}
+							break;
+						case 'supported field types':
+							$warning[$key] = t('Supported fields must store a (single or multiple) value such as textfields & datefield (from date).');
+							break;
+					}
+					if (!$warning[$key]) {
+						$warning[$key] = t('Unknown key %key with value %value for %variable in %function', array('%key' => $key, '%value' => $value, '%variable' => '$message[\''. $mainkey .'\']', '%function' => __FUNCTION__));
+					}
+				}
+				$output_array['warning'] = implode(' ', $warning);
+				// If $set_drupal_message this is used as type.
+				$drupal_set_message_type = isset($drupal_set_message_type) ? $drupal_set_message_type : 'warning';
+			}
+			// Create explanation. Subordinate clause of a critical or warning message.
+			if (is_array($mainvalue) && substr($mainkey, 0, 11) == 'explanation' && ($message_level == 'all' || $drupal_set_message_type == 'error')) {
+				// Validate and set context.
+				foreach ($mainvalue as $key => $value) {
+					switch ($key) {
+						case 'option fieldname set':
+							$explanation[$key] = t('since a fieldname is set and therefore the ID type is always %nid (node ID)', array('%nid' => 'nid'));
+							break;
+						case 'empty value':
+							$explanation[$key] = t('since it has no value');
+							break;
+						case 'option not compatible with idtype':
+							if ($value['%idtype'] && $value['%option']) {
+								$explanation[$key] = t('since the ID type %idtype does not use the option %option', $value);
+							}
+							else {
+								$explanation[$key] = t('Variable %variable of the first parameter of %function has to be an array with keys %keys', array('%variable' => '$message[\''. $mainkey .'\'][\''. $key .'\']', '%function' => __FUNCTION__, '%keys' => '%idtype and %option'));
+							}
+							break;
+						case 'option to use in tag id':
+							if ($value['%id'] && $value['%option']) {
+								$explanation[$key] = t('to use the option %option of Linodef tag with id %id', $value);
+							}
+							else {
+								$explanation[$key] = t('Variable %variable of the first parameter of %function has to be an array with keys %keys', array('%variable' => '$message[\''. $mainkey .'\'][\''. $key .'\']', '%function' => __FUNCTION__, '%keys' => '%id and %option'));
+							}
+							break;
+					}
+					if (!$explanation[$key]) {
+						$explanation[$key] = t('Unknown key %key with value %value for %variable in %function', array('%key' => $key, '%value' => $value, '%variable' => '$message[\''. $mainkey .'\']', '%function' => __FUNCTION__));
+					}
+				}
+				$output_array['explanation'] = implode(' ', $explanation);
+			}
+			// Create a custom message. In most cases a subordinate clause of an error or warning messages for additional explanations. Could be part of a critical message.
+			if (is_string($mainvalue) && substr($mainkey, 0, 6) == 'custom' && ($message_level == 'all' || $drupal_set_message_type == 'error')) {
+				$output_array['custom'] = $mainvalue;
+				// Set punctuation mark if not set.
+				if (substr($output_array['custom'], -1) != '.') {
+					$output_array['custom'] .= '.';
+				}
+			}
+		}
+		// Combine messages.
+		if (isset($output_array) && is_array($output_array)) {
+			$output = ' '. implode(' ', $output_array);
+			// Set punctuation mark if not set.
+			if (substr($output, -1) != '.') {
+				$output .= '.';
+			}
+		}
+	}
+	elseif (!$message_location_none) {
+		$output = t('Parameter %variable of %function has to be an array.', array('%variable' => '$message', '%function' => __FUNCTION__));
+	}
+
+	// Create Drupal message.
+	if ($drupal_set_message && !empty($message_location['page'])) {
+		if (!$drupal_set_message_type || ($drupal_set_message_type != 'status' && $drupal_set_message_type != 'warning' && $drupal_set_message_type != 'error')) {
+			$drupal_set_message_type = 'warning';
+		}
+		$message_array = drupal_set_message();
+		if (!is_array($message_array) || (is_array($message_array) && !in_array($output, $message_array))) {
+			drupal_set_message($output, $drupal_set_message_type);
+		}
+	}
+	// Create inline message.
+	if (isset($output) && !empty($message_location['inline'])) {
+		// Attach Drupal default message classes. Works only if HTML input filter allows span tags.
+		if ($drupal_set_message_type == 'error') {
+			$output = '<span class="messages error">'. $output .'</span>';
+		}
+		elseif ($drupal_set_message_type == 'warning') {
+			$output = '<span class="messages warning">'. $output .'</span>';
+		}
+		else {
+			$output = '<span class="messages">'. $output .'</span>';
+		}
+		return $output .' ';
+	}
+	else {
+		return '';
+	}
+}
+
+/**
+ * Helper function to delete those Linodef tags that embeds content.
+ *
+ * Buttons API requires this function, too. So it is in modules main file.
+ *
+ * @param $body
+ *   The string from which the tags should be deleted.
+ * @return
+ *   String which contains no Linodef tags.
+ *
+ * @see _linodef_buttonsapi_getfieldsbyfieldname() _linodef_find_nodesnfields()
+ */
+function linodef_removetags($body) {
+	$preg = array(
+		// Every Linodef tag with or without fields, options and comments.
+		"@\[#([0-9a-zA-Z_]+)(.*?)\]@e" => '',
+	);
+	return preg_replace(array_keys($preg), array_values($preg), $body);
+}

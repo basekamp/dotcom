@@ -1,0 +1,5 @@
+; $Id: zenophile.info,v 1.1 2009/04/12 01:52:12 garrettalbright Exp $
+name = Zenophile
+description = Quickly create Zen subthemes.
+package = Development
+core = 6.x

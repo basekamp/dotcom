@@ -1,0 +1,13 @@
+// $Id: CHANGELOG.txt,v 1.2 2009/06/11 23:45:08 deciphered Exp $
+
+ImageField Tokens 6.x-1.x-dev, xxxx-xx-xx (development release)
+-------------------------------------
+
+- Added SimpleTests.
+- Added translation template.
+
+
+ImageField Tokens 6.x-1.0, 2009-05-02
+-------------------------------------
+
+- Initial 6.x release.

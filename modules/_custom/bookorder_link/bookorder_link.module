@@ -1,0 +1,100 @@
+<?php
+// $Id$
+
+/**
+ * @file
+ * Adds link to quickly reorder book pages. Also removes 'Outline' tab added by the book module, 
+ * unless specifically configured to display. The new configuration, 'Show outline tab' is added
+ * to book module's admin settings so it can be found easier by users expecting that functionality.
+ *
+ * The rationale is that the reorder book screen can do everything the outline form can do, by
+ * clicking the 'edit' link next to each item. It's also a cleaner workflow because the book page 
+ * where 'Reorder book' gets clicked is set as the return destination.
+ */
+
+/**
+ * Implementation of hook_link().
+ *
+ * Adds 'Reorder book' link below nodes within a book hierarchy.
+ */
+function bookorder_link_link($type, $node = NULL, $teaser = FALSE) {
+  $links = array();
+  if ($type == 'node' && isset($node->book)) {
+    if (!$teaser) {
+      if ((user_access('add content to books') || user_access('administer book outlines')) && $node->status == 1) {
+        $links['bookorder'] = array(
+          'title' => t('Reorder book'),
+          'href' => "admin/content/book/". $node->book['bid'],
+          'query' => drupal_get_destination(),
+        );
+      }
+    }
+  }
+  return $links;
+}
+
+/**
+ * Implementation of hook_menu_alter().
+ *
+ * Removes 'Outline' tab added by the book module, unless specifically configured to display.
+ * @see bookorder_link_form_alter().
+ * 
+ * For this function to have any effect, we need to rebuild the menu afterwards.
+ * @see bookorder_link_admin_settings_submit.
+ */
+function bookorder_link_menu_alter(&$items) {
+  if (variable_get('book_outline_tab', 0) == 0) {
+    // Set this tab to MENU_CALLBACK, so it still registers the path, but just don't show the tab:
+    $items['node/%node/outline']['type'] = MENU_CALLBACK;
+  }
+}
+
+/**
+ * Implementation of hook_form_alter().
+ * 
+ * Adds new configuration in book module's admin settings to optionally display the 'Outline' tab.
+ * We add a custom submit handler so we can rebuild the menu only after our new configuration is changed.
+ * @see bookorder_link_admin_settings_submit().
+ */
+function bookorder_link_form_alter(&$form, $form_state, $form_id) {
+  switch ($form_id) {
+    case 'book_admin_settings':
+      // Add option to display the book module's 'Outline' tab, unchecked by default.
+      $form['book_outline_tab'] = array(
+        '#type' => 'checkbox',
+        '#title' => t('Show outline tab?'),
+        '#default_value' => variable_get('book_outline_tab', 0),
+        '#description' => t("Displays the book module's default <em>Outline</em> tab."),
+        '#weight' => -10,
+      );
+      // Add custom submit handler so we can rebuild the menu on form submit.
+      $form['#submit'] = array('bookorder_link_admin_settings_submit');
+     break;
+  }
+}
+
+/**
+ * Custom submit handler for book settings form.
+ *
+ * @see book_admin_settings().
+ */
+function bookorder_link_admin_settings_submit($form, &$form_state) {
+  $settings = $form_state['values'];
+  // Manually set book module's variables, now that we're using a custom submit handler.
+  variable_set('book_allowed_types', $settings['book_allowed_types']);
+  variable_set('book_child_type', $settings['book_child_type']);
+  // Check to see if 'Show outline tab' configuration has been changed.
+  if ($settings['book_outline_tab'] != variable_get('book_outline_tab', 0)) {
+    // If so, note that fact for our use below.
+    // We do this separately because we need to check before the variable is set,
+    // but we need to rebuild the menu after the variable has been set.
+    $outline_tab_changed = TRUE;
+  }
+  // After checking for changes, set our 'Show outline tab' variable.
+  variable_set('book_outline_tab', $settings['book_outline_tab']);
+  // Now rebuild menu if 'Show outline tab' had been changed, so tab reflects configurations.
+  if ($outline_tab_changed) {
+    // We need to rebuild the menu rather than calling menu_cache_clear_all().
+    module_invoke('menu', 'rebuild');
+  }
+}

@@ -1,0 +1,115 @@
+<?php
+// $Id: media_archive.module,v 1.1.4.1 2010/11/30 04:37:51 winston Exp $
+
+/**
+ *  @file
+ *  Embedded Audio Field provider file for archive.org audio postings
+ */
+
+function media_archive_emfield_providers($module, $provider = NULL) {
+  return drupal_system_listing("$provider\.inc$", drupal_get_path('module', 'media_archive') ."/providers/$module", 'name', 0);
+}
+
+/**
+ * Custom version of emfield_request_xml that returns JSON as an associative array.
+ * TODO: Remove this when emfield_request_xml is fixed
+ * see issue - http://drupal.org/node/984786
+ *
+ * When an include file requires to read an xml to receive information, such as for thumbnails,
+ * this script can be used to request the xml and return it as an array.
+ *   @param $provider
+ *     the string of the third party provider, such as 'youtube', 'flikr', or 'google'
+ *   @param $url
+ *     the url for the xml request
+ *   @param $args
+ *     an array of args to pass to the xml url
+ *   @param $cached
+ *     optional; if TRUE, the result of this xml request will be cached. good to play nice w/
+ *     the third party folks so they don't stop providing service to your site...
+ *   @param $return_errors
+ *     optional; if TRUE and an error is encountered, a descriptive error array will be returned with elements for
+ *     code, message and stat => 'error'
+ *   @param $hash_extra
+ *     optional; The key for caching is created from the arguments.  If your provider does not use arguments
+ *     (or uses the same arguments for each media item, you must pass a unique string as $hash_extra.  Currently
+ *     this is only used by bliptv and archive.org
+ *   @param $serialized
+ *     optional; Most uses of this function are expecting an XML file to be returned.  However some providers (Flickr)
+ *     can instead return a serialized PHP array.  In this case set $serialized to TRUE.
+ *  @param $json
+ *    If TRUE, then the result will be a json encoded string.
+ *   @return
+ *     the xml results returned as an array
+ */
+function media_archive_request_xml($provider, $url, $args = array(), $cached = TRUE, $return_errors = FALSE, $hash_extra = FALSE, $serialized = FALSE, $json = FALSE) {
+  ksort($args);
+
+  // Build an argument hash that we'll use for the cache id and api signing.
+  $arghash = $provider .':';
+  foreach ($args as $k => $v) {
+    $arghash .= $k . $v;
+  }
+
+  // Build the url.
+  foreach ( $args as $k => $v) {
+    $encoded_params[] = urlencode($k) .'='. urlencode($v);
+  }
+  if (!empty($encoded_params)) {
+    $url .= '?'. implode('&', $encoded_params);
+  }
+
+  // some providers, such as bliptv, actually change the url, and not just the queries.
+  // we provide an extra section for a unique identifier in that case
+  if (isset($hash_extra)) {
+    $arghash .= ':'. $hash_extra;
+  }
+
+  // if it's a cachable request, try to load a cached value
+  if ($cached && $cache = cache_get($arghash, 'cache')) {
+    return $cache->data;
+  }
+
+  // connect and fetch a value
+  $result = drupal_http_request($url);
+
+  if (!empty($result->error)) {
+    if ($return_errors) {
+      return array(
+        'stat' => 'error',
+        'code' => $result->code,
+        'message' => 'HTTP Error: '. $result->error,
+      );
+    }
+    emfield_set_error(t("Could not connect to @provider, HTTP error @error", array('@error' => $result->code, '@provider' => $provider)));
+
+    return array();
+  }
+
+  if ($json) {
+    $response = json_decode($result->data, TRUE);
+  }
+
+  if ($cached) {
+    cache_set($arghash, $response, 'cache', time() + variable_get('emfield_cache_duration', 3600));
+  }
+
+  return $response;
+}
+
+
+/**
+ * Construct flowplayer style playlist from one or more files
+ */
+function _media_archive_flowplayer_playlist($playlist) {
+  foreach ($playlist as $key => $url) {
+    //First item doesn't play automatically
+    if ($key==0) {
+      $fpplaylist["$key"]="{\"url\":\"$url\",\"autoplay\":false}";
+    }
+    else {
+      $fpplaylist["$key"]="{\"url\":\"$url\",\"autoplay\":true}";
+    }
+  }
+  $output = implode(",\n", $fpplaylist);
+  return $output;
+}

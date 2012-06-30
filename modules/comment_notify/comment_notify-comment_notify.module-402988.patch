@@ -1,0 +1,28 @@
+Index: comment_notify.module
+===================================================================
+--- comment_notify.module	(revision 75)
++++ comment_notify.module	(working copy)
+@@ -299,7 +299,7 @@
+         $form['comment_notify_settings']['node_notify_mailalert'] = array(
+           '#type' => 'checkbox',
+           '#title' => t('Receive node follow-up notification e-mails'),
+-          '#default_value' => isset($edit['node_notify_mailalert']) ? $edit['node_notify_mailalert'] : FALSE,
++          '#default_value' => isset($edit['node_notify_mailalert']) ? $edit['node_notify_mailalert'] : variable_get('node_notify_default_mailalert', FALSE),
+           '#description' => t('Check this box to receive an e-mail notification for follow-ups on your nodes (pages, forum topics, etc). You can not disable notifications for individual threads.')
+         );
+ 
+@@ -643,6 +643,14 @@
+     '#rows' => 15
+   );
+ 
++
++  $form['comment_notify_settings']['node_notify_default_mailalert'] = array(
++    '#type' => 'checkbox',
++    '#title' => t('Subscribe users to their node follow-up notification emails by default'),
++    '#default_value' => variable_get('node_notify_default_mailalert', FALSE),
++    '#description' => t('If this is checked, new users will receive e-mail notifications for follow-ups on their nodes by default until they individually disable the feature.'),
++  );
++
+   $form['comment_notify_settings']['node_notify_default_mailtext'] = array(
+     '#type' => 'textarea',
+     '#title' => t('Default mail text for sending out the notifications to node authors'),

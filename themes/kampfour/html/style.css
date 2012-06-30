@@ -1,0 +1,281 @@
+/**
+ * Style for new bk site. 
+ * Try html only first.
+ */
+
+/**
+ * First use this:
+ * 
+ * Sticky Footer Solution
+ * by Steve Hatcher 
+ * http://stever.ca
+ * http://www.cssstickyfooter.com
+ */
+
+* {margin:0;padding:0;} 
+
+/* must declare 0 margins on everything, also for main layout components use padding, not 
+vertical margins (top and bottom) to add spacing, else those margins get added to total height 
+and your footer gets pushed down a bit more, creating vertical scroll bars in the browser */
+
+html, body, #wrap {height: 100%;}
+
+body > #wrap {height: auto; min-height: 100%;}
+
+#main {padding-bottom: 200px;}  /* must be same height as the footer */
+
+#footer {position: relative;
+	margin-top: -200px; /* negative value of footer height */
+	height: 200px;
+	clear:both;} 
+
+/* CLEAR FIX*/
+.clearfix:after {content: ".";
+	display: block;
+	height: 0;
+	clear: both;
+	visibility: hidden;}
+.clearfix {display: inline-block;}
+/* Hides from IE-mac \*/
+* html .clearfix { height: 1%;}
+.clearfix {display: block;}
+/* End hide from IE-mac */
+
+/* End Sticky Footer Solution */
+
+/**
+ * Generic elements.
+ */
+body {
+  font: 12px/170% Verdana, sans-serif;
+  color: #494949;
+}
+
+/**
+ * Layout.
+ */
+#wrap {
+  min-width: 800px;
+}
+
+#header {
+  background: #f90;
+  /*background: black;*/
+  color: white;
+  height: 3.75em;
+}
+
+#main {
+  padding-top: 2em;
+  padding-right: 2em;
+  padding-left: 2em;
+}
+
+#footer {
+  min-width: 800px;
+  color: #c6c6c6;
+  background: gray;
+}
+
+/**
+ * Headers.
+ */
+h1, h2, h3, h4, h5, h6 {
+  margin: 0;
+  padding: 0;
+  font-weight: normal;
+  font-family: Helvetica, Arial, sans-serif;
+}
+
+h1 {font-size: 170%;}
+
+h2 {
+  font-size: 160%;
+  line-height: 130%;
+}
+
+h3 {font-size: 140%;}
+
+h4 {font-size: 130%;}
+
+h5 {font-size: 120%;}
+
+h6 {font-size: 110%;}
+
+/**
+ * Links.
+ */
+a:link, a:visited {
+  /*color: #027AC6;*/
+  color: #f90;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/**
+ * Tabs.
+ */
+
+ul.tabs {
+  list-style: none;
+  padding: 1em 0 0;
+  margin-left: 1em;
+}
+
+ul.tabs li {
+  float: left;
+}
+
+ul.tabs li a {
+  display: block;
+  height: 2em;
+  background: grey;
+  margin: 0 .5em 0;
+  padding: .5em;
+  padding-bottom: .25em;
+  color: white;
+}
+
+ul.tabs li a:hover,
+ul.tabs li a.active {
+  background: white;
+  color: black;
+  text-decoration: none;
+}
+
+/**
+ * Inline lists.
+ */
+ul.inline {
+  list-style: none;
+}
+
+ul.inline li {
+  display: inline;
+  border-right: thin solid white;
+  padding-right: .5em;  
+}
+
+ul.inline li.last {
+  display: inline;
+  border: none;
+  padding-right: .5em;  
+}
+
+ul.inline li a {
+  color: white;
+}
+
+ul.inline li a:hover,
+ul.inline li a.active {
+  text-decoration: underline;
+}
+
+/**
+ *
+ */
+ul.secondary {
+  list-style: none;
+  margin-bottom: 1em;
+}
+
+ul.secondary li {
+  float: left;
+  padding-right: 1em;
+}
+
+ul.secondary li a {
+  display: block;
+  height: 2em;
+  /*border-right: thin solid lightgray;*/
+  padding: 0 .5em;
+}
+
+ul.secondary li.first a {
+  /*border-left: thin solid lightgray;*/
+}
+
+ul.secondary li a:hover,
+ul.secondary li a.active {
+  background: #f90;
+  color: white;
+  text-decoration: none;
+}  
+
+/**
+ * Header links.
+ */
+#header ul.tabs {
+}
+
+#header ul.inline {
+  float: right;
+  margin-right: 1em;
+}
+
+/**
+ * Footer links.
+ */
+#footer a {
+  color: #c6c6c6;
+}
+
+#footer a:hover {
+  text-decoration: underline;
+}
+
+#footer ul {
+  list-style: none;
+  display: table;
+  padding: 2em;
+}
+
+#footer ul li {
+  display: table-cell;
+  border-right: thin dashed lightgray;
+  padding: 0 2em;
+  font-weight: bold;
+  /*font-size-adjust: 0.6;*/
+  width: 175px;
+}
+
+#footer ul li.first {
+  padding-left: 0;
+}
+
+#footer ul li.last {
+  border: none;
+}
+
+#footer ul li ul {
+  padding: 0;
+}
+
+#footer ul li ul li {
+  display: list-item;
+  border: none;
+  padding: 0;
+  font-weight: normal;
+  font-size-adjust: none;
+}
+
+/**
+ * Logo.
+ */
+
+img.logo {
+  height: 3em;
+  width: auto;
+  float: right;
+  padding: 0 0 1em 2em;
+}
+
+img.right {
+  float: right;
+  width: 300px;
+  height: auto;
+  padding: 0 0 1em 2em;
+}

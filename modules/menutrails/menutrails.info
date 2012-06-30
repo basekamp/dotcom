@@ -1,0 +1,10 @@
+name = Menu Trails
+description = "Dynamically assign 'trails' so that Drupal menus remain in active state when viewing individual nodes."
+dependencies[] = menu
+core = 6.x
+; Information added by drupal.org packaging script on 2011-02-28
+version = "6.x-1.x-dev"
+core = "6.x"
+project = "menutrails"
+datestamp = "1298852020"
+

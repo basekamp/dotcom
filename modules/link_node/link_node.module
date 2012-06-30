@@ -1,0 +1,268 @@
+<?php
+// $Id: link_node.module,v 1.2.2.2 2008/09/22 17:12:39 tomchiverton Exp $
+
+/*
+@file Allows users to link a node to another node.
+
+Copyright (c) 2004 Mark Howell
+Copyright (c) 2007 Tom Chiverton
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+as published by the Free Software Foundation; either version 2
+of the License, or any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+
+*/
+
+/**
+ * Hook which handles filtering.
+ */
+function link_node_filter($op, $delta = 0, $format = -1, $text = '') {
+  //drupal_set_message("attached_node_filter invoked with \$op=$op");
+  switch ($op) {
+    case 'list':
+      return array(t("Link Node Filter"));
+    case 'name':
+      return t("Link Node Filter");
+    case 'description':
+      return t("Allows you to create meta tags that link to other nodes.");
+    case 'settings':
+      return link_node_filter_settings();
+    case 'process':
+      return link_node_filter_process($text);
+    default:
+      return $text;
+  }
+}
+
+/**
+ * Function used to discover what filters are supplied by this module.
+ */
+function link_node_filter_settings() {
+  $form['filter_link_node'] = array(
+    '#type' => 'fieldset',
+    '#title' => t("Link Node codes"),
+    '#collapsible' => TRUE,
+    '#collapsed' => FALSE
+  );
+  $form['filter_link_node']['link_node'] = array(
+    '#type' => 'item',
+    '#title' => t('Instructions'),
+    '#value' => t('This filter translates special node tags into links to other nodes. 
+      Syntax: [node:node_id,title="val2"]; every param but node_id is optional.
+      Each list below should be a comma separated list (no spaces) of what node properties users are
+      allowed to override for the purposes of displaying a node.  E.g. <em>title,border</em>')
+  );
+  foreach (node_get_types() as $type => $name) {
+    $form['filter_link_node']["link_node_allowed_vars_$type"] = array(
+      '#type' => 'textfield',
+      '#title' => t("Allowed parameters for %type nodes", array('%type' => $type)),
+      '#default_value' => variable_get("link_node_allowed_vars_$type", ""),
+      '#size' => 40,
+      '#maxlength' => 256
+    );
+  }
+  return $form;
+}
+
+/**
+ * Actually execute filter on given text.
+ *  Parse text for all meta tags.
+ *  Lookup each specified node.
+ *  Parse all parameters specified in each meta tag and apply them to the corresponding node.
+ *  Replace meta tag with themed thumbnail view of the referrent node.
+ */
+function link_node_filter_process($text, $show_error_msgs=1) {
+  if (variable_get("link_node_enabled", 1)) {
+    // *** [node:NID,a="b",c="d",width="40",etc="foo"] ***
+    // first we find every tag
+    $meta_tag_regexp = '/\[node:(\d+)([^\]]*)\]/i';
+
+    if (preg_match_all($meta_tag_regexp, $text, $match)) {
+      // then we make the html
+      foreach ($match[1] as $key => $nid) {
+        if (module_exists('i18n') && module_exists('translation')) {
+          $nid = translation_node_nid($nid, i18n_get_lang(), $nid);
+        }
+
+        $node = node_load(array("nid" => $nid));
+        if ($node) {
+          // check here to see if user has permissions to access this node
+          if (!node_access("view", $node)) {
+            $matches_html[$key] = t('You do not have access to view this node');
+            continue;
+          }
+
+          $meta_tag_params_regexp = '/,\s*([\w_-]+)\s*=\s*"([^"]+)"\s*/';
+          $meta_tag_params_regexp2 = '/,\s*([\w_-]+)\s*=\s*&quot;([^,]+)&quot;\s*/';
+
+          if ( preg_match_all($meta_tag_params_regexp, $match[2][$key], $parm_match) == 0 ) {
+            $meta_tag_params_regexp=$meta_tag_params_regexp2 ;
+          }
+          
+          if (preg_match_all($meta_tag_params_regexp, $match[2][$key], $parm_match)) {
+            $allowed_vars = explode(',', variable_get("link_node_allowed_vars_$node->type", ""));
+            for ($i=0; $i<count($parm_match[1]); $i++) {  
+              //$parm_match[1] contains the param names, $parm_match[2] contains values
+              $parm = $parm_match[1][$i];
+              $val = $parm_match[2][$i];
+              
+              // check the name ($parm) to make sure it's an allowable value (like "align" or "border" or something)
+              if (in_array($parm, $allowed_vars)) {
+                $node->$parm = $val;
+              }
+              else {
+                if ($show_error_msgs) {
+                  drupal_set_message("ignoring param '$parm' for ". $node->type ." as it is not valid.  Possible values are '<code>". variable_get("link_node_allowed_vars_$node->type", "") ."</code>'.");
+                }
+              }
+            }      
+          }
+
+          $matches_html[$key] = theme("link_node_thumbnail", $node);
+        }
+        else {
+          if ($show_error_msgs) {
+            $matches_html[$key] = theme("link_node_format", t("Nonexistent node nid: ") ."$nid.");
+          }
+          else {
+            $matches_html[$key] = "";
+          }
+        }
+      }
+      
+      // PHP (4.3.2) str_replace appears to use some internal order
+      // rather than array index when finding replace elements
+      // corresponding to search elements.  To make sure that the
+      // order of the arrays correspond, we make new copies here.
+      foreach ($match[1] as $key => $value) {
+        $mtch[] = $match[0][$key];
+        $repl[] = $matches_html[$key];
+      }
+      $text = str_replace($mtch, $repl, $text);
+    }
+  }
+  return $text;
+}
+
+/**
+ * Generates a thumbnail view of a node.
+ */
+function theme_link_node_thumbnail(&$node) {
+
+  $main = TRUE;
+  
+  if ($node->type == "image") {
+    
+    // offer theme developers and module developers to override this
+    if (function_exists("image_link_node_thumbnail")) {
+      return image_link_node_thumbnail($node);
+    }
+  }
+  
+  $output = l($node->title, drupal_get_path_alias('node/'. $node->nid));
+ 
+  return $output;
+}
+
+/**
+ * Puts a box around the attached_node's content
+ */
+function theme_link_node_format($content) {
+  return '<div class="link_node">'. $content ."</div>\n";
+}
+
+/**
+ * Clears the filter cache when any node is updated
+ */
+function link_node_nodeapi(&$node, $op) {
+  if ($op == "update") {
+    // since this is a node-specific filter, clear the cache when nodes are updated
+    cache_clear_all(null, 'cache_filter');
+  }
+}
+
+/**
+ * Generates help text for this module
+ */
+function link_node_help($path, $arg) {
+  $output = "";
+
+  switch ($path) {
+    case 'admin/help#link_node':
+      $output = t('<p><strong>Nodes That Link To Other Nodes</strong></p>
+      <p>
+      You can link nodes to other nodes using the following syntax:<br>
+      [node:<em>node_id</em>,title="val1"]<br><br>
+      </p>
+      <p>
+      Some examples:<br>
+      [node:123]<br>
+      [node:123,title="original"]<br>
+      </p><p>Currently available parameters:<table border="1">');
+      foreach (node_get_types() as $type => $name) {
+        $output .= "<tr><td>". t("Allowed parameters for <strong>$type</strong> nodes: ") ."</td><td>". variable_get("link_node_allowed_vars_$type", "") ."</td></tr>\n";
+      }
+      $output .= t('</table></p><p>
+      Site admin: If there are properties of a node that you want to allow your users to modify when referring to them,
+      you can specify those in the filter configuration.
+      </p>');
+      break;
+  }
+  return $output;
+}
+
+/**
+ * Implementation of hook_filter_tips().
+ */
+function link_node_filter_tips($delta, $format, $long = FALSE) {
+  if ($long) {
+    $txt = t('<strong>Linking Nodes To Other Nodes</strong>
+      <p>
+      You can link nodes to other nodes using the following syntax:<br>
+      [node:<em>node_id</em>,title="val2"]<br><br>
+      </p>
+      <p>
+      Some examples:<br>
+      [node:123]<br>
+      [node:123,title="original"]<br>
+      </p><p>Currently available parameters:<table border="1">');
+    foreach (node_get_types() as $type => $name) {
+      $txt .= "<tr><td>". t("Allowed parameters for <strong>$type</strong> nodes: ") ."</td><td>". variable_get("link_node_allowed_vars_$type", "") ."</td></tr>\n";
+    }
+
+    $txt .= t('</table></p><p>
+      Site admin: If there are properties of a node that you want to allow your users to modify when referring to them,
+      you can specify those in the filter configuration.
+      
+      </p>');
+    return $txt;
+  }
+  else {
+    return t('You can link nodes to other nodes using the following syntax:<br>
+    [node:<em>node_id</em>,title="val2"]');
+  }
+}
+
+/**
+ * Implementation of hook_theme().
+ */
+function link_node_theme() {
+  return array(
+    'link_node_thumbnail' => array(
+      'arguments' => array('node' => NULL),
+    ),
+    'link_node_format' => array(
+      'arguments' => array('content' => NULL),
+    ),
+  );
+}

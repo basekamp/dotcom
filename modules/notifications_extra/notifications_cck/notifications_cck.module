@@ -1,0 +1,349 @@
+<?php
+// $Id: notifications_cck.module,v 1.1.2.3 2009/08/11 14:32:55 davidg Exp $
+/**
+ * @file
+ * Subscriptions to taxonomy terms
+ */
+
+/**
+ * Implementation of hook_menu_()
+ */
+function notifications_cck_menu() {
+  // Hidden user account tab
+  $items['user/%user/notifications/cck'] = array(
+    'type' => MENU_LOCAL_TASK,
+    'access callback' => FALSE,
+    'title' => t('CCK'),
+    'page callback' => 'notifications_cck_user_page',
+    'page arguments' => array(1),
+    'weight' => 10,
+  );
+  
+  return $items;
+}
+
+/**
+ * Implementation of hook_perm()
+ */
+function notifications_cck_perm() {
+  return array('subscribe to cck fields');
+}
+
+/**
+ * Implementation of hook_notifications().
+ */
+function notifications_cck_notifications($op, &$arg0, $arg1 = NULL, $arg2 = NULL) {
+  switch ($op) {
+    case 'names':
+      $subs = &$arg0;
+      if ($subs->event_type == 'node') {
+        foreach($subs->fields AS $key => $val) {
+          if(substr($key, 0, 6) == 'field_') {
+            $name = content_fields($key);
+            $name = $name['widget']['label'];
+            $subs->names[$key] = t('Field %field: %value', array('%field' => $name, '%value' => $val));
+          }
+        }
+      }
+      break;
+    case 'subscription types':
+      $info = array_keys(notifications_cck_fields());
+      
+      $types['cck'] = array(
+        'event_type' => 'node',
+        'title' => t('CCK'),
+        'description' => t('Subscribe to content with a given value for a CCK field.'),
+        'access' => 'subscribe to cck fields',
+        'fields' => $info,
+        'page callback' => 'notifications_cck_user_page',
+        'user page' => 'user/%user/notifications/cck',
+      );
+      return $types;
+    case 'subscription fields':
+      $inf = notifications_cck_fields();
+      foreach($inf as $fieldname => $params) {
+        $fields[$fieldname] = array(
+          'name' => "CCK: ". $params['widget']['label'],
+          'field' => $fieldname,
+          'type' => $params['type'],
+          'format callback' => 'notifications_cck_formatter',
+          'format callback args' => array($fieldname),
+          'value callback' => 'notifications_cck_serializer',
+          'value callback args' => array($fieldname),
+        );
+      }
+      return $fields;
+    case 'query':
+      if ($arg0 == 'event' && $arg1 == 'node' && ($node = $arg2->node) || $arg0 == 'user' && $arg1 == 'node' && ($node = $arg2)) {
+        $nodear = (array) node_load($node->nid);
+        $query = array();
+        foreach ($nodear as $key=>$val) {
+          if(substr($key,0,6) == 'field_') {
+            // is a cck value
+            $temp = array();
+            // cck usually uses the [value] field but may have random other things too, so whatevs, just serialize the whole shebang
+            foreach($val as $oneval) {
+              ksort($oneval);
+              $temp[] = serialize($oneval);
+            }
+            $query[]['fields'][$key] = $temp;
+          }
+        }
+        return $query;
+      }
+      break;
+    
+    case 'node options':
+      return _notifications_cck_node_options($arg0, $arg1);
+   
+    case 'access': 
+      $type = $arg0;
+      $object = &$arg2;
+      $access = TRUE;
+      if ($type == 'subscription') {
+        $access = TRUE;
+        $allowedfields = notifications_cck_fields();
+        foreach($object->fields as $fieldname => $info) {
+          if(substr($fieldname,0,6) == 'field_' && !array_key_exists($fieldname, $allowedfields)) {
+            $access = FALSE;
+            break;
+          }
+        }
+      }
+      return array($access);      
+      break;
+ 
+  }
+}
+
+/**
+ * Provide tag subscriptions on nodes.
+ */
+function _notifications_cck_node_options($account, $node) {
+  $options = array();
+  //we reload the node (prolly from cache) because we don't want to deal with the possibility that the field has been formatted in the object we get, messing
+  //up the serialization
+  $nodear = (array) node_load($node->nid);
+  $fields = notifications_cck_fields();
+  foreach ($nodear as $key => $val) {
+    if(substr($key,0,6) == 'field_') {
+      // cck usually uses the [value] field but may have random other things too, so whatevs, just serialize the whole shebang
+      foreach($val as $oneval) {
+        if (array_key_exists($key, $fields)) {
+          ksort($oneval);
+          $options[] = array(
+            'name' => t('Posts with %field equal to %value', array('%field' => $fields[$key]['widget']['label'], '%value' => $oneval['value'])),
+            'type' => 'cck',
+            'fields' => array($key => serialize($oneval)),
+          );
+        }
+      }
+    }
+  }
+  return $options;
+}
+
+function notifications_cck_form_alter(&$form, $form_state, $form_id) {
+  if ($form_id == 'notifications_content_settings_form') {
+    $allfields = content_fields();
+    foreach($allfields as $fieldname => $field) {
+      $allfields[$fieldname] = $field['field_name'];
+    }
+    $form['cck'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('CCK subscriptions'),
+      '#collapsible' => TRUE,
+      '#weight' => 0,
+    );
+    
+    $form['cck']['notifications_cck_fields'] = array(
+      '#type'          => 'checkboxes',
+      '#title'         => t('Allowed fields'),
+      '#default_value' => notifications_cck_fields('field_name'),
+      '#options'       => $allfields,
+      '#description'   => t('Select fields to which subscriptions should be <em>allowed</em>.'),
+      '#multiple'      => TRUE,
+    );
+    /*
+    $form['tags']['notifications_tags_showsubscribed'] = array(
+      '#type'          => 'checkbox',
+      '#title'         => t('Limit the displayed taxonomy terms'),
+      '#default_value' => variable_get('notifications_tags_showsubscribed', 0),
+      '#description'   => t('If checked, the displayed taxonomy terms in User Interface form will be limited to subscribed terms only. When you have too many taxonomy terms causing the Tags tab to run out of memory under Notifications UI, enabling this setting can fix the problem by only displaying the subscribed taxonomy terms. Note that if you enable this setting, you will have to provide your users an alternative way to subscribe to taxonomy items, such as providing links like: notifications/subscribe/%user/taxonomy/tid/%tid . The link will bring up the standard subscription confirmation dialog.'),
+    );*/
+  }
+
+}
+
+function notifications_cck_fields($field = NULL) {
+  if ($allowed = variable_get('notifications_cck_fields', array())) {
+    $allfields = content_fields();
+    $fields = array();
+    foreach (array_filter($allowed) as $fieldname) {
+      $fields[$fieldname] = $allfields[$fieldname];
+    } 
+  }
+  else {
+    // They're disallowed by default
+    $fields = array();
+  }
+  if ($field) {
+    $list = array();
+    foreach ($fields as $fieldname => $fieldval) {
+      $list[$fieldname] = $fieldval[$field];
+    }
+    return $list;
+  }
+  else {
+    return $fields;
+  }
+}
+  
+/**
+ * Returns a list of taxonomy subscriptions
+ */
+function notifications_cck_user_page($account = NULL) {
+  global $user;
+  
+  module_load_include('inc', 'notifications_content', 'notifications_content.pages');
+  
+  if (is_null($account)) {
+    $account = $user;
+  }
+
+  return drupal_get_form('notifications_cck_user_form',  $account);
+}
+
+/**
+ * Returns the taxonomy subscription form
+ */
+function notifications_cck_user_form($form_state, $account) {  
+  // query string for category subscriptions
+  $fields = content_fields();
+  // Get subscriptions indexed by tid
+  $subscriptions = array();
+  $existing = notifications_get_subscriptions(array('type' => 'cck', 'uid' => $account->uid), NULL, TRUE);
+  foreach ($existing as $subs) {
+    foreach($subs->fields as $key => $val) {
+      //find a key for the field: should only be one, if not, whatevs, won't show :-(
+      if(substr($key, 0, 6) == 'field_') {
+        $subscriptions[$key][$val] = $subs;
+        continue;
+      }
+    }
+  }
+  // Complete defaults
+  $defaults = array(
+    'sid' => 0, 
+    'send_interval' => notifications_user_setting('send_interval', $account), 
+    'send_method' => notifications_user_setting('send_method', $account),
+    'type' => 'cck',
+    'event_type' => 'node',
+  );
+  $form['defaults'] = array('#type' => 'value', '#value' => $defaults);
+  $form['account'] = array('#type' => 'value', '#value' => $account);
+  $form['current'] = array('#type' => 'value', '#value' => $subscriptions);
+    
+  $form['subscription_fields'] = array('#type' => 'value', '#value' => array());
+
+  //$subsrows['subform'][] = array('#value' => t('Current subscriptions:'));
+
+  $form['subscriptions'] = array(
+    '#tree' => TRUE,
+  );
+  // Hide send methods if only one
+  $send_methods = _notifications_send_methods();
+  $header = array(theme('table_select_header_cell'), t('Field'), t('Send interval'));
+  if (count($send_methods) > 1) {
+    $header[] = t('Send method');
+  }  
+  // We may be limiting the list to subscribed terms only, so we load all of them to find out the vocabulary and name
+  //if (variable_get('notifications_tags_showsubscribed', 0)) {
+  //  $load_terms = notifications_tags_get_tree(array_keys($subscriptions));
+  //}
+  foreach ($subscriptions as $field => $subs) {
+    $form['subscriptions'][$field] = array(
+      '#type' => 'fieldset',
+      '#title' => check_plain($fields[$field]['widget']['label']),
+      '#tree' => TRUE,
+      '#collapsible' => TRUE,
+      '#collapsed' => FALSE,
+      '#theme' => 'notifications_form_table',
+      '#header' => $header,
+      '#parents' => array('subscriptions'),
+    );
+    foreach($subs as $val => $rowdefaults) {
+      $rowdefaults = (array) $rowdefaults;
+      $rowdefaults += $defaults;
+      $form['subscriptions'][$field]['checkbox'][$val] = array(
+        '#type' => 'checkbox',
+        '#default_value' => $rowdefaults['sid'],
+      );
+      $ar = unserialize($val);
+      $form['subscriptions'][$field]['title'][$val] = array(
+        '#value' => check_plain($fields[$field]['widget']['label'].":".$ar['value']),
+      );
+      $form['subscriptions'][$field]['send_interval'][$val] = array(
+        '#type' => 'select',
+        '#options' => _notifications_send_intervals(),
+        '#default_value' => $rowdefaults['send_interval'],
+      );
+      
+      if (count($send_methods) > 1) {
+        $form['subscriptions'][$field]['send_method'][$val] = array(
+          '#type' => 'select',
+          '#options' => _notifications_send_methods(),
+          '#default_value' => $rowdefaults['send_method'],
+        );
+      } else {
+        $form['subscriptions'][$field]['send_method'][$val] =  array('#type' => 'value', '#value' => $rowdefaults['send_method']);
+      }
+      // Pass on the fields for processing
+      $form['subscription_fields']['#value'][$val] = array($field => $val);
+    
+    }
+  }
+  $form['submit'] = array('#type' => 'submit', '#value' => t('Save'));
+
+  $form['#submit'][] = 'notifications_content_form_submit';
+  return $form;
+}
+
+/**
+ * Formats CCK stored subscription field according to the field's default formatter.
+ *
+ * @param $value
+ *   Serialized array of the $value objec taken from the node or similar when the subscription was generated.
+ * @param $html
+ *   Whether to return the field formatted as HTML.
+ * @param $subtype
+ *   Subscription type for this field, unused.
+ * @param $args
+ *   $args is array containing [0] => field name, as defined for 'format callback args'
+ */
+function notifications_cck_formatter($value, $html, $subtype, $args) {
+  if ($args[0]) {
+    //have a field name
+    if ($html) {
+        $fields = content_fields();
+        return check_plain($fields[$args[0]]['widget']['label']). ": ". content_format($args[0], unserialize($value));
+    }
+    return content_format($args[0], unserialize($value));
+  }
+}
+
+/**
+ * Value formatter, serializes the subscribed field to be stored.
+ * 
+ * @param $val
+ *   Value string to be stored.
+ * @param $field
+ *   Which form field this applies to.
+ * @param $subtype
+ *   Subscription type for this field, unused.
+ * @param $args
+ *   Args array as defined in 'value callback args'.
+ */
+function notifications_cck_serializer($val, $field, $subtype, $args) {
+  return(serialize(array('value'=>$val)));
+}

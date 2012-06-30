@@ -1,0 +1,7 @@
+; $Id: imagefield_tokens.info,v 1.1 2009/03/19 06:55:40 deciphered Exp $
+name = ImageField Tokens
+description = Adds Node tokens to ImageFields ALT and Title text fields.
+dependencies[] = imagefield
+dependencies[] = filefield_paths
+package = CCK
+core = 6.x

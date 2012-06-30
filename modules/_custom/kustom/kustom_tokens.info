@@ -1,0 +1,7 @@
+; $Id$
+name = Kustom Tokens
+description = Provides additional tokens for Kustom module.
+dependencies[] = kustom
+dependencies[] = token
+package = Basekamp
+core = 6.x

@@ -1,0 +1,8 @@
+; $Id: popups_reference.info,v 1.1.6.2 2009/03/21 01:03:20 starbow Exp $
+name = Popups: Add & Reference
+description = In-place popup to add a new node to Node Reference widget. 
+package = User interface
+core = 6.x
+php = 5.0
+dependencies[] = popups 
+dependencies[] = content

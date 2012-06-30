@@ -1,0 +1,6 @@
+; $Id: autocomplete_widgets.info,v 1.1.2.1 2009/02/24 01:44:29 markuspetrux Exp $
+name = Autocomplete Widgets
+description = Provides autocomplete widgets for CCK Text and Number fields.
+dependencies[] = content
+package = CCK
+core = 6.x

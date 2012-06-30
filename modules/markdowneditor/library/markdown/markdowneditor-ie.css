@@ -1,0 +1,51 @@
+/*
+ * $Id: markdowneditor-ie.css,v 1.1.2.1 2008/12/14 23:27:06 solipsist Exp $
+ */
+
+/**
+ * @file
+ * A test suite for selected functionality from MarkdownEditor.
+ *
+ * @author Jakob Persson <jakob@imbridge.com>
+ * @author Adam Bergmark
+ */
+
+#markdowneditor-dialog-help,
+#markdowneditor-dialog-definition-list,
+#markdowneditor-dialog-table {
+  display:block;
+}
+
+#markdowneditor-dialog-definition-list * {
+  vertical-align:top;
+}
+
+#markdowneditor-dialog-definition-list .content-row div {
+  float:left;
+}
+
+#markdowneditor-dialog-definition-list form {
+  margin-right:10px;
+  padding-right:30px;
+}
+
+#markdowneditor-dialog-header select {
+  width:200px;
+  border:3px solid red;
+}
+
+#markdowneditor-dialog-table .alignment-row select {
+  width:137px;
+}
+
+#markdowneditor-dialog-table .header-row input {
+  width:130px;
+}
+
+#markdowneditor-dialog-header fieldset input {
+  width:144px;
+}
+
+#markdowneditor-dialog-footnote fieldset input {
+  width:147px;
+}

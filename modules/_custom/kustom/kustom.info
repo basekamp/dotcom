@@ -1,0 +1,6 @@
+; $Id$
+name = kustom
+description = Custom module for Basekamp.com.
+package = Basekamp
+core = 6.x
+

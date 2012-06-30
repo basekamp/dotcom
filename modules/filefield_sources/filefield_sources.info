@@ -1,0 +1,6 @@
+; $Id: filefield_sources.info,v 1.1 2009/04/17 00:20:12 quicksketch Exp $
+name = FileField Sources
+description = Extends FileField to allow referencing of existing files, remote files, and server files.
+dependencies[] = filefield
+package = CCK
+core = 6.x

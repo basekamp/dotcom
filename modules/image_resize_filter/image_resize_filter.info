@@ -1,0 +1,3 @@
+name = Image resize filter
+description = Filter to automatically scale images to their height and width dimensions.
+core = 6.x

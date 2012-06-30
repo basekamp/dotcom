@@ -1,0 +1,14 @@
+<?php
+// $Id$
+
+/**
+ * @file
+ * Uninstalls variables added by the Book order link module.
+ */
+
+/**
+ * Implementation of hook_uninstall().
+ */
+function bookorder_link_uninstall() {  
+  variable_del('book_outline_tab');
+}

@@ -1,0 +1,7 @@
+; $Id: notifications_cck.info,v 1.1.2.1 2009/06/16 15:25:08 jareyero Exp $
+name = CCK Notifications
+description = Allows users to subscribe to cck fields.
+package = "Notifications"
+dependencies[] = notifications
+dependencies[] = content
+core = 6.x

@@ -1,0 +1,34 @@
+<?php
+// $Id: textarea_expander.module,v 1.1.2.1 2009/04/10 08:20:14 henrrrik Exp $
+
+/**
+ * @file
+ * Makes resizable textarea fields expand and contract dynamically with content.
+ */
+
+/**
+ * Implementation of hook_elements().
+ */
+function textarea_expander_elements() {
+  return array('textarea' => array(
+    '#process' => array('textarea_expander_process_textarea'),
+    ),
+  );
+}
+
+/**
+ * Implementation of hook_theme().
+ */
+function textarea_expander_theme() {
+  return array(
+    'textarea_expander_field' => array('arguments' => array('element' => NULL)),
+  );
+}
+
+function textarea_expander_process_textarea($element) {
+  if ($element['#resizable'] == TRUE) {
+    $element['#rows'] = 10;
+    drupal_add_js(drupal_get_path('module', 'textarea_expander') .'/textarea_expander.js', 'module', 'header');
+  }
+  return $element;
+}

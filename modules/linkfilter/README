@@ -1,0 +1,93 @@
+1.0 --- UNDER DEVELOPMENT
+-----------------------------------------
+Link Filter - converts [l:URL text] tags
+
+INSTALL
+ 
+ 1) Unzip the linkfilter.zip kit in the modules directory of your Drupal
+    setup, usually sites/all/modules
+
+ 2) This will create:
+     modules/linkfilter/
+     modules/linkfilter/linkfilter.css
+     modules/linkfilter/linkfilter.info
+     modules/linkfilter/linkfilter.module
+     modules/linkfilter/README
+     modules/linkfilter/*.png and *.gif icon files
+
+ 3) As admin user, go to administer -> modules, and enable linkfilter module.
+
+ 4) Go to administer -> Input Formats, click on "configure" for Filtered
+ HTML (and all other required input formats), and enable the "Link Filter".
+ 
+ Now you can use [l:URL text] tags in all the nodes that are using the
+ appropriate input formats.
+
+ Click on Input Formats when editing a node for more help - there is a link
+ to "Link Filter Tips" section on the filter tips page that provides
+ more details and examples.
+
+-----------------------------------------
+The goal for this filter is to be somewhat like the URL filter included
+with Drupal, with the additional requirement to be Drupal installation
+directory independent as well as domain independent so that the URLs in
+Drupal nodes don't have to be re-edited when a Drupal site is moved to a
+different sub-directory or a different domain. Additionally, it allows
+for link text to be specified for the URL, and it preserves the input
+characters as much as possible, performing no or minimal HTML entity
+conversions of the input characters.
+
+-----------------------------------------
+/**
+ * "Link filter" Drupal module, replaces [l:URL text] input tags.
+ *
+ * [l:URL text] text filter for internal Drupal or external Web links.
+ * "text" is optional, and can be multiple words. URL can be any URL -
+ * an alias, or any Drupal path, or a non-Drupal path with full
+ * http://URL notation.
+ * This is converted to a HTML href tag, prefixed with:
+ * 1) $base_root if the URL begins with a / character
+ * 2) no prefix if the URL has a : in it, example: http: or ftp: etc
+ * 3) converted with Drupal l() function in all other cases,
+ *    for example recipe/boil-potatoes  or node/231
+ *    In this case, the URL is considered to be a Drupal system path.
+ * 
+ * Appropriate class="linkfilter-<type>" tag will be added, from this list:
+ * linkfilter-drupal, linkfilter-local, linkfilter-urlfull,
+ * linkfilter-mailto, linkfilter-drupal-node-<node_type>
+ * See the linkfilter.css file for examples and link icons available for use
+ * with these classes.
+ * 
+ * [l:recipe/boil-potatoes link text]
+ *    ==>
+ * <a href="http://..../drupal-dir/recipe/boil-potatoes">link text</a>
+ * 
+ * For non-Drupal paths:
+ * Space " " and right square bracket ] need to be escaped in URL and text.
+ * in URL:  For space use %20. For right square bracket ] use %5D or &#93;
+ * in text: For right square bracket ] use &#93;
+ * Note that Drupal l() is not used because it munges special characters
+ * and query tags like after the ? character in the URL.
+ *
+ * For Drupal paths:
+ * As of version 0.7, uses Drupal l() function to create HTML for the
+ * link. This will allow [l:node/281] to be changed to the alias, if any
+ * for node/281.
+ *
+ * ---
+ * syntax borrowed from wiki example: [http://www.example.com Example site]
+ *
+ * Added l: prefix to allow normal use of square brackets [ ] so that
+ * only prefixed content gets transformed.
+ * ---
+ *
+ *License
+ *This work is hereby released into the Public Domain.
+ *To view a copy of the public domain dedication, visit
+ *http://creativecommons.org/licenses/publicdomain/ or send a letter to
+ *Creative Commons, 559 Nathan Abbott Way, Stanford, California 94305, USA.
+ *
+ *Author: Avinash Chopde <avinash@acm.org>
+ *Created: April 2007
+ *http://www.aczoom.com/cms/software/web/link-filter-drupal-module
+ */

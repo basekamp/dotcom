@@ -1,0 +1,54 @@
+<?php
+// $Id: markdowneditor.module,v 1.1.2.4 2009/02/07 19:43:19 solipsist Exp $
+/*
+ * Markdown Editor
+ * by Jakob Persson of NodeOne <jakob@nodeone.se>
+ *
+ * Provides a toolbar for writing Markdown syntax with BUEditor.
+ *
+ * Sponsored by
+ *   NodeOne - www.nodeone.se
+ */
+
+/**
+ * Implementation of hook_form_alter()
+ */
+function markdowneditor_form_alter(&$form, $form_state, $form_id) {
+  // Update buttons when modules are enabled or disabled
+	if ($form_id == 'system_modules') {
+    $form['#submit'][] = '_markdowneditor_update_buttons';
+  }
+}
+
+/**
+ * Update button definitions.
+ */
+function _markdowneditor_update_buttons() {
+
+  // Set up variables
+  $path = drupal_get_path('module', 'markdowneditor');  
+    	
+	// Load buttons
+  $buttons = variable_get('markdowneditor_buttons', false);
+
+  // Include default button definitions
+  require_once("$path/markdowneditor.buttons.inc");    
+  
+  if ($buttons) {
+	  // Calculate table content fingerprint and compare to stored copy
+	  // only update table if contents have changed
+	  $fprint = md5($js_helpPath . $js_imceURL . $js_cssPath .$js_addStyleSheet);
+	  
+	  if ($fprint != variable_get('markdowneditor_content_fprint', null)) {
+	    
+	  	// Store new fingerprint
+	  	variable_set('markdowneditor_content_fprint', $fprint); 
+	  	
+	  	// Update buttons
+		  foreach ($buttons as $mde_bkey => $bid) {
+		    db_query("UPDATE {bueditor_buttons} SET content = '%s' WHERE bid = %d", $mde_buttons[$mde_bkey][2], $bid);
+		  }
+	  }
+  }
+   
+}

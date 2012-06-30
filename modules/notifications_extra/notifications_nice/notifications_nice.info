@@ -1,0 +1,7 @@
+; $Id: notifications_nice.info,v 1.1.2.1 2009/04/28 13:25:54 jareyero Exp $
+name = Nice links
+description = Adds nice js subscription widget to nodes like on groups.drupal.org
+package = "Notifications"
+dependencies[] = notifications_ui
+core = 6.x
+php = 5.0

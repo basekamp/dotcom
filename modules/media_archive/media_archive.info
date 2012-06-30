@@ -1,0 +1,15 @@
+; $Id: media_archive.info,v 1.2 2009/12/08 00:50:37 aaron Exp $
+
+name = Media: Archive
+description = Embedded Media Field provider files for archive.org audio & video.
+core = 6.x
+dependencies[] = emfield
+package = Media
+
+
+; Information added by drupal.org packaging script on 2010-12-01
+version = "6.x-2.2"
+core = "6.x"
+project = "media_archive"
+datestamp = "1291175463"
+

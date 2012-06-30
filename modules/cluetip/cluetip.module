@@ -1,0 +1,54 @@
+<?php
+// $Id: cluetip.module,v 1.1.4.1 2009/02/10 09:23:57 acm Exp $
+
+/**
+ * @file
+ * A wrapper for the cluetip jquery plugin
+ */
+
+/**
+ *  This will register the plugin with the jQ module.
+ *  To invoke, use jq_add('cluetip');
+ *
+ *  @TODO add support for checking if hoverIntent/dimensions is covered by jq's alraedy installed modules and then not including local js
+ */
+function cluetip_jq($op, $plugin = NULL) {
+
+  // BOOL SWITCH - SET TO TRUE TO USE THE DEDICATED HOVER INTENT MODULE
+  $use_hover_intent_module = FALSE;
+
+  switch ($op) {
+    case 'info':
+      $js = array();
+      $js[] = drupal_get_path('module', 'cluetip') .'/cluetip/jquery.cluetip.js';
+      $js[] = drupal_get_path('module', 'cluetip') .'/cluetip/jquery.hoverIntent.js';
+      $js[] = drupal_get_path('module', 'cluetip') .'/cluetip/jquery.dimensions-1.2.js';
+
+
+      return array(
+          'cluetip' => array(
+              'name' => t('Cluetip'),
+              'description' => t("The clueTip plugin allows you to easily show a fancy tooltip when the user's mouse hovers over (or, optionally, clicks on) any element you designate in your script"),
+                'version' => 'Version 0.9.8  (05/22/2008)',
+                'url' => 'http://plugins.learningjquery.com/cluetip/',
+              'files' => array(
+                  'js' => $js,
+                  'css' => array(
+                      drupal_get_path('module', 'cluetip') .'/cluetip/jquery.cluetip.css',
+                  ),
+              ),
+          )
+      );
+      break;
+    case 'add':
+      if ($use_hover_intent_module) {
+        // any additional processing required when adding a plugin to a page.
+        switch ($plugin) {
+          case 'cluetip':
+            jq_add('hoverIntent');
+            break;
+        }
+      }
+      break;
+  }
+}

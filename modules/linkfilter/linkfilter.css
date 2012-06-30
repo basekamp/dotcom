@@ -1,0 +1,32 @@
+/* linkfilter tags:
+ * linkfilter-drupal, linkfilter-local, linkfilter-urlfull,
+ * linkfilter-mailto,
+ * linkfilter-drupal-node-<node_type> examples:
+ * linkfilter-drupal-node-image, linkfilter-drupal-node-acidfree, etc
+ * */
+/* aoutside.gif - 7x8; aoutside1.gif - 14x16; extlink.png - 10x10;
+  Choices:
+  ---
+  background: url(aoutside1.gif) right center no-repeat; padding-right: 16px;
+  ---
+  background: url(extlink-gray.png) right center no-repeat;
+  background: url(extlink-blue.png) right center no-repeat;
+  background: url(extlink-red.png) right center no-repeat;
+  padding-right: 12px;
+  and also available: mailto- and camera- icons
+  ---
+*/
+a.linkfilter-urlfull {
+  background: url(extlink-red.png) right center no-repeat;
+  padding-right: 12px;
+}
+a.linkfilter-drupal-node-image,
+a.linkfilter-drupal-node-acidfree {
+  background: url(camera-red.png) right center no-repeat;
+  padding-right: 12px;
+}
+a.linkfilter-mailto { 
+  background: url(mailto-red.png) right center no-repeat;
+  padding-right: 12px;
+}
+/* -------------------------------------*/

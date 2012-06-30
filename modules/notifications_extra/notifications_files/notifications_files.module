@@ -1,0 +1,84 @@
+<?php
+// $Id: notifications_files.module,v 1.1.2.6 2009/08/01 17:42:47 danepowell Exp $
+
+/**
+ * @file
+ * Includes file attachments in notifications
+ *   
+ * Contributed by Dane Powell
+ */
+
+/**
+ * Implementation of hook_message_alter().
+ * 
+ * Attach files information to message.
+ */
+function notifications_files_message_alter(&$message, $info) {
+  // Just for non digested messages. Make sure that recipient is allowed to view uploaded files.
+  if (!empty($message->notifications) && empty($message->notifications['digest']) && user_access('view uploaded files', $message->account)) {
+    $allowed_types = variable_get('notifications_files_types', array());
+    $event = current($message->notifications['events']);
+    if ($event && !empty($event->objects['node']) && !empty($event->objects['node']->files) && !empty($allowed_types[$event->objects['node']->type])) {
+      // We attach files with the list option
+      $attachments = array();
+      foreach ($event->objects['node']->files as $file) {
+        if ($file->list) {
+          $attachments[$file->fid] = $file;
+        }
+      }
+      $message->files = $attachments;
+    }
+  }
+}
+
+/**
+ * Implementation of hook_menu()
+ */
+function notifications_files_menu() {
+  $items['admin/messaging/notifications/files'] = array(
+    'title' => 'File attachments',
+    'description' => 'Manage whether attachments to nodes are sent with notifications.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('notifications_files_settings_form'),
+    'access arguments' => array('administer site configuration'),
+    'type' => MENU_LOCAL_TASK,
+    'file' => 'notifications_files.admin.inc',
+  );
+  return $items;
+}
+
+/**
+ * Implementation of hook_token_values
+ */
+function notifications_files_token_values($type, $object = NULL) {
+  if($type == 'node') {
+    $node = $object;
+    global $base_url;
+    if (!empty($node->files)) {
+      foreach ($node->files as $file) {
+        $file_uri = $base_url . '/' . $file->filepath;
+        $file_uris[] = $file_uri;
+        $file_links[] = '<a href="' . $file_uri . '">' . $file->filename . '</a>';
+      }
+      $tokens['node-files-html'] = implode('<br />', $file_links);
+      $tokens['node-files-plain'] = implode('\n', $file_uris);
+    }
+    else
+    {
+      $tokens['node-files-html'] = '';
+      $tokens['node-files-plain'] = '';
+    }
+    return $tokens;
+  }
+}
+
+/**
+ * Implementation of hook_token_list
+ */
+function notifications_files_token_list($type = 'all') {
+  if($type == 'node' || $type == 'all') {
+    $tokens['node']['node-files-html'] = t("Node attachments with HTML line breaks");
+    $tokens['node']['node-files-plain'] = t("Node attachments with plain-text line breaks");
+    return $tokens;
+  }
+}

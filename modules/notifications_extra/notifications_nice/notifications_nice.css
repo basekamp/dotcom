@@ -1,0 +1,13 @@
+/* $Id: notifications_nice.css,v 1.1.2.1 2009/04/28 13:25:54 jareyero Exp $ */
+
+.cluetip-default h3#cluetip-title {
+  background-color: #0174BB;
+}
+
+.cluetip-default #cluetip-outer {
+  background-color: #DFEDF7;
+}
+
+.cluetip-default #cluetip-outer a {  
+  text-decoration: none;
+}

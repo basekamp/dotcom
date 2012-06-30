@@ -1,0 +1,435 @@
+<?php
+// $Id$
+
+/**
+ * @file
+ * Custom module for Basekamp.com.
+ */
+
+/**
+ * Implement hook_menu().
+ */
+function kustom_menu() {
+  $items['about/projects/add'] = array(
+    'title' => t('Add+'),
+    'page callback' => 'kustom_add_project',
+    'access callback' => 'node_access',
+    'access arguments' => array('create', 'project'),
+    'type' => MENU_LOCAL_TASK,
+    'weight' => 10,
+  );
+  $items['about/events/add'] = array(
+    'title' => t('Add+'),
+    'page callback' => 'kustom_add_event',
+    'access callback' => 'node_access',
+    'access arguments' => array('create', 'event'),
+    'type' => MENU_LOCAL_TASK,
+    'weight' => 10,
+  );
+	$items['basekamp/%node/subscribe'] = array(
+    'title' => t('Subscribe to node'),
+    'page callback' => 'kustom_subscribe_to_notifications',
+    'page arguments' => array(1, TRUE),
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+    'weight' => 10,
+  );
+	$items['basekamp/%node/unsubscribe'] = array(
+    'title' => t('Subscribe to node'),
+    'page callback' => 'kustom_subscribe_to_notifications',
+    'page arguments' => array(1, FALSE),
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+    'weight' => 10,
+  );
+  return $items;
+}
+
+/**
+ * Implementation of hook_perm()
+ */
+function kustom_perm() {
+  return array('send event email to lists');
+}
+
+/**
+ * Redirect to node/add/project.
+ */
+function kustom_add_project() {
+  drupal_goto('node/add/project', 'destination=about%2Fprojects');
+}
+
+/**
+ * Redirect to node/add/event.
+ */
+function kustom_add_event() {
+  drupal_goto('node/add/event', 'destination=about%2Fevents');
+}
+
+/**
+ * Implementation of hook_nodeapi().
+ */
+function kustom_nodeapi($node, $op) {
+  // call _nodeapi() when before viewed content is rendered
+  switch ($op) {
+   case 'view':
+    // Do something.
+    global $user;
+    //drupal_set_message('<pre>'. print_r($user->roles, TRUE) .'</pre>');
+    
+    if ($node->type == 'event') {
+    	// Do something.
+    }
+    break;
+	case 'update':
+		if (($node->subscribers)&&($node->subscribers!='')) {
+			$subscribers = explode("\n",$node->subscribers);
+			foreach ($subscribers as $subscriber) {
+        $u = user_load(array('mail' => trim($subscriber)));
+				if (is_numeric($u->uid)) {
+					kustom_create_subscription($u,$node);
+				}
+				else {
+					$u = kustom_create_user_by_email($subscriber);
+					if (!$u) {
+						drupal_set_message(t("Error creating user account: ").$subscriber, 'error');
+					} else {
+						kustom_create_subscription($u,$node);
+					}
+				}
+			}
+		}
+		break;	
+	}
+}
+
+/**
+ * Custom function: given an email address, create a new Drupal user
+ */
+function kustom_create_user_by_email($mail) {
+	$parts = explode('@',$mail);
+	$possible_name = $parts[0];
+	$u = user_load(array('name'=>$possible_name));
+	while ($u) {
+		$possible_name = $parts[0] . rand(100,1000);
+		$u = user_load(array('name'=>$possible_name));
+	}
+	$props = array();
+	$props['name'] = $possible_name;
+	$props['mail'] = $mail;
+	$props['timezone_name'] = 'America/Los_Angeles';
+	$props['access'] = time();
+	$props['status'] = 1;
+	$props['pass'] = 'topsecretpassyo';
+	$account = user_save($account, $props);
+	$op = 'register_admin_created';
+	_user_mail_notify($op, $account); // from user.module
+	drupal_set_message(t('Password and further instructions have been e-mailed to the new user <a href="@url">%name</a>.<br />', array('@url' => url("user/$account->uid"), '%name' => $account->name)));	
+	return $account;
+}
+
+/**
+ * Custom function: create a comments subscription for a user/ node pair.  Relies on notifications_content.module being enabled.
+ */
+function kustom_create_subscription($user,$node) {
+	if (function_exists('notifications_save_subscription')) {
+		$s = new stdClass();
+		$s->uid = $user->uid;
+		$s->type = 'comment';
+		$s->event_type = 'node';
+		$s->fields = array('nid' => $node->nid);
+		notifications_save_subscription($s);
+	} else {
+		drupal_set_message(t('Please install and enable the notifications module!'));
+	}
+}
+
+/*
+ * Next 3 functions borrowed from Devel module.
+ */
+function kustom_menu_need_destination() {
+  $dest = array('admin/settings/site-maintenance', 'admin/reports/status/run-cron', 'user/login', 'logout');
+  return $dest;
+}
+
+/**
+ * An implementation of hook_menu_link_alter(). Flag this link as needing alter at display time.
+ * This is more robust that setting alter in hook_menu(). See kustom_translated_menu_link_alter().
+ *
+ **/
+function kustom_menu_link_alter(&$item, $menu) {
+  if (in_array($item['link_path'], kustom_menu_need_destination())) {
+    $item['options']['alter'] = TRUE;
+  }
+}
+
+/**
+ * An implementation of hook_translated_menu_item_alter(). Append dynamic
+ * querystring 'destination' to several menu items.
+ *
+ **/
+function kustom_translated_menu_link_alter(&$item) {
+  if (in_array($item['href'], kustom_menu_need_destination())) {
+    $item['localized_options']['query'] = drupal_get_destination();
+  }
+}
+
+/**
+ * Implementation of hook_form_alter().
+ *
+ * The function is named modulename_form_alter.
+ */
+function kustom_form_alter(&$form, $form_state, $form_id) {
+	// Get current node-type from form array.
+	$form_type = $form['type']['#value'];
+	if ($form_type) {
+		// Set node_form_id to match node-type, so our first case below applies to every node form.
+		$node_form_id = $form_type .'_node_form';
+	}
+	else {
+		// Set dummy variable so our case below doesn't freak out on non-node forms.
+		$node_form_id = 'dummy_node_form';
+	}
+  // Normally a switch is used because you may want to alter more than
+  // one form and it is easy to add a new case for each form.
+  switch ($form_id) {
+    
+    // Add trigger for custom event email.
+    case 'event_node_form':
+      global $user;
+      if (user_access('send event email to lists')) {
+        $form['event_email'] = array(
+          '#type' => 'fieldset',
+          '#title' => t('Post to Lists'),
+          '#collapsible' => TRUE,
+          '#collapsed' => FALSE,
+          '#tree' => TRUE,
+        );
+        $form['event_email']['post'] = array(
+          '#type' => 'checkbox',
+          '#title' => t('Announce this post on BK-Discussion-List'),
+          '#default_value' => (empty($form['nid']['#value'])),
+          '#id' => 'event-email-toggle',
+        );
+        $form['event_email']['post2'] = array(
+          '#type' => 'checkbox',
+          '#title' => t('Announce this post on BK-Event-List'),
+          '#default_value' => (empty($form['nid']['#value'])),
+          '#id' => 'event-email-toggle2',
+        );
+      }
+      
+      // add a textarea that will integrate with notifications
+      if (!empty($form['nid']['#value'])) {
+				$results = db_query("SELECT n.uid FROM {users} u JOIN {notifications} n ON u.uid=n.uid JOIN {notifications_fields} nf ON n.sid=nf.sid WHERE nf.field='%s' AND nf.value=%d", 'nid', $form['nid']['#value']);
+				$subscribers = array();
+				while ($row=db_fetch_object($results)) {
+					$subscribers[] = user_load($row->uid)->mail;
+				}
+				$subscribers_txt = implode("\n",$subscribers);
+				$form['notifications']['subscribers'] = array(
+					'#type' => 'textarea',
+					'#default_value' => $subscribers_txt,
+					'#title' => t('Subscribers'),
+					'#description' => t('List of email addresses of people who will receive email notifications of comments.  One per line! Addresses will not be verified!'),
+				);
+			}
+      break;
+
+    // Overrides all content-types edit forms.
+    case $node_form_id:
+      $form['nodewords']['#collapsed'] = TRUE;
+      break;
+
+    // Overides 'Page' form.
+    case 'page_node_form':
+      #drupal_set_message('<pre>'. print_r($form, TRUE) .'</pre>');
+      break;
+
+    // Overides Views edit form.
+    case 'views_ui_edit_view_form':
+      $form['nodewords']['#collapsed'] = TRUE;
+      break;
+    case 'comment_form':
+    	$node = node_load($form['nid']['#value']);
+    	$form['basekamp_subscribe_link'] = array(
+    		'#value' => kustom_subscribe_to_comment_link($node), 
+    	);
+    	break;
+  }
+}
+
+/**
+ * Action for event email.
+ */
+
+/**
+ * Implementation of hook_action_info().
+ *
+ * Note: Use the Token module to do the work for us.
+ */
+function kustom_action_info() {
+  $info['kustom_notify_event_action'] = array(
+    'type' => 'user',
+    'description' => t('Send email to BK-Discussion-List when saving new event'),
+    'configurable' => module_exists('token_actions'),
+    'hooks' => array(
+      'nodeapi' => array('insert', 'update'),
+    ),
+  );
+  $info['kustom_notify_event_action2'] = array(
+    'type' => 'user',
+    'description' => t('Send email to BK-Event-List when saving new event'),
+    'configurable' => module_exists('token_actions'),
+    'hooks' => array(
+      'nodeapi' => array('insert', 'update'),
+    ),
+  );
+  $info['kustom_subscribe_to_comments_action'] = array(
+    'type' => 'comment',
+    'description' => t('Subscribe commenter to comments'),
+    'configurable' => FALSE,
+			'hooks' => array( 'comment' => array('insert') ),
+  );
+  return $info;
+}
+
+/**
+ * Configurable action forms for Bk-Discussion-List email.
+ */
+function kustom_notify_event_action_form($context) {
+  // Use the Token module to give us a configurable action form. If it's not installed, return FALSE.
+  if (module_exists('token_actions')) {
+    $form = token_actions_send_email_action_form($context);
+  }
+  return $form;
+}
+ 
+function kustom_notify_event_action_submit($form, $form_state) {
+  // Use the Token module to submit. If it's not installed, return FALSE.
+  if (module_exists('token_actions')) {
+    $params = token_actions_send_email_action_submit($form, $form_state);
+  }
+  return $params;
+}
+
+/**
+ * Configurable action forms for Bk-Event-List email.
+ */
+function kustom_notify_event_action2_form($context) {
+  // Use the Token module to give us a configurable action form. If it's not installed, return FALSE.
+  if (module_exists('token_actions')) {
+    $form = token_actions_send_email_action_form($context);
+  }
+  return $form;
+}
+
+function kustom_notify_event_action2_submit($form, $form_state) {
+  // Use the Token module to submit. If it's not installed, return FALSE.
+  if (module_exists('token_actions')) {
+    $params = token_actions_send_email_action_submit($form, $form_state);
+  }
+  return $params;
+}
+
+/**
+ * Add Drupal action for Bk-Discussion-List.
+ */
+function kustom_notify_event_action($object, $context) {
+  // First, if not a published node of type X, skip.
+  $node = $context['node'];
+  // Get variable from configuration.
+  $triggered_type = 'event';
+  if (!$node->status || $node->type != $triggered_type || empty($node->event_email) || empty($node->event_email['post'])) {
+    return;
+  }
+
+  // Set a friendly message.
+  drupal_set_message(t('Successfully posted to Bk-Dicsussion-List'));
+  
+  // If our content passes the above criteria, ask the Token module to send the configurable email.
+  token_actions_send_email_action($object, $context);
+}
+
+/**
+ * Add Drupal action for Bk-Event-List.
+ */
+function kustom_notify_event_action2($object, $context) {
+  // First, if not a published node of type X, skip.
+  $node = $context['node'];
+  // Get variable from configuration.
+  $triggered_type = 'event';
+  if (!$node->status || $node->type != $triggered_type || empty($node->event_email) || empty($node->event_email['post2'])) {
+    return;
+  }
+
+  // Set a friendly message.
+  drupal_set_message(t('Successfully posted to Bk-Event-List'));
+  
+  // If our content passes the above criteria, ask the Token module to send the configurable email.
+  token_actions_send_email_action($object, $context);
+}
+
+/**
+ *	Automatically subscribes a commenter to the node notifications.
+ *	If the commenter doesn't have an account yet, then an account is created.
+ */
+function kustom_subscribe_to_comments_action(&$object, $context = array()) {
+	$node = node_load($object->nid);
+	$account = user_load($object->uid);
+	if ($account->uid>0) {
+		kustom_create_subscription($u,$node);
+	} else {
+		$account = user_load(array('mail' => $object->mail));
+		if ($account->uid>0) {
+			kustom_create_subscription($account,$node);
+		} else {
+			$account = kustom_create_user_by_email($object->mail);
+			if (!$account) {
+				drupal_set_message(t("Error creating user account: ").$object->mail, 'error');
+			} else {
+				kustom_create_subscription($account,$node);
+				// Change the comment author to the new user, rather than "not verified"
+				db_query("UPDATE {comments} SET uid = %d WHERE cid = %d", $account->uid, $object->cid);
+
+			}
+		}
+	}
+}
+
+/**
+ *	Menu callback for subscribing and unsubscribing from a node
+ */
+function kustom_subscribe_to_notifications($node, $subscribe=TRUE) {
+	global $user;
+	if ($user->uid>0) {
+		if ($subscribe) {
+			kustom_create_subscription($user,$node);
+		} else { // delete any existing notifications for this node (this may turn out to be deleting too much and we should check for only comments?)
+			$subscriptions = notifications_user_get_subscriptions($user->uid, 'node', 'nid', $node);
+			foreach ($subscriptions as $sid => $s) {
+				notifications_delete_subscription($sid);
+			}
+		}
+	}
+	drupal_goto('node/'.$node->nid);
+}
+
+/**
+ *	Generates a link for subscribing or unsubscribing from comments for a node
+ */
+function kustom_subscribe_to_comment_link($node) {
+	global $user;
+	if ($user->uid>0) {
+		$subscriptions = notifications_user_get_subscriptions($user->uid, 'node', 'nid', $node);
+		// i'm not sure if this is the best way to check if the user is subscribed to the node or not
+		if (count($subscriptions)==0) {
+			return l('subscribe to comments for this node','basekamp/'.$node->nid.'/subscribe');
+		} else {
+			return l('unsubscribe from comments','basekamp/'.$node->nid.'/unsubscribe');
+		}
+		return ;
+	} else {
+		return '';
+	}
+}

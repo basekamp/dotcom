@@ -1,0 +1,111 @@
+# $Id: markdowneditor.pot,v 1.1.2.1 2009/02/07 19:43:19 solipsist Exp $
+#
+# LANGUAGE translation of Drupal (general)
+# Copyright YEAR NAME <EMAIL@ADDRESS>
+# Generated from files:
+#  markdowneditor.buttons.inc,v 1.1.2.2 2009/02/04 21:32:11 solipsist
+#  markdowneditor.module,v 1.1.2.3 2009/02/04 21:32:12 solipsist
+#  markdowneditor.install,v 1.1.2.3 2009/02/04 21:32:12 solipsist
+#  markdowneditor.info,v 1.1.2.1 2009/02/01 23:34:54 solipsist
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"POT-Creation-Date: 2009-02-07 20:39+0100\n"
+"PO-Revision-Date: YYYY-mm-DD HH:MM+ZZZZ\n"
+"Last-Translator: NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <EMAIL@ADDRESS>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
+
+#: markdowneditor.buttons.inc:37
+msgid "Make selected text into a header"
+msgstr ""
+
+#: markdowneditor.buttons.inc:46
+msgid "Italics: Make selected text emphasized"
+msgstr ""
+
+#: markdowneditor.buttons.inc:55
+msgid "Make selected text strong"
+msgstr ""
+
+#: markdowneditor.buttons.inc:64
+msgid "Format selected text as code"
+msgstr ""
+
+#: markdowneditor.buttons.inc:73
+msgid "Format selected text as a code block"
+msgstr ""
+
+#: markdowneditor.buttons.inc:82
+msgid "Make selected text into a block quote"
+msgstr ""
+
+#: markdowneditor.buttons.inc:91
+msgid "Make selected text into an ordered list (numbered)"
+msgstr ""
+
+#: markdowneditor.buttons.inc:100
+msgid "Make selected text into an unordered list (bullets)"
+msgstr ""
+
+#: markdowneditor.buttons.inc:109
+msgid "Insert a definition list"
+msgstr ""
+
+#: markdowneditor.buttons.inc:118
+msgid "Insert a table"
+msgstr ""
+
+#: markdowneditor.buttons.inc:136
+msgid "Insert a footnote"
+msgstr ""
+
+#: markdowneditor.buttons.inc:145
+msgid "Make text into an autolink (turns URLs in links, turns words into section identifiers for navigating the document)"
+msgstr ""
+
+#: markdowneditor.buttons.inc:154
+msgid "Make text into a link (turns text into a link with more options)"
+msgstr ""
+
+#: markdowneditor.buttons.inc:163
+msgid "Insert an image"
+msgstr ""
+
+#: markdowneditor.buttons.inc:172
+msgid "Insert a line break"
+msgstr ""
+
+#: markdowneditor.buttons.inc:181
+msgid "Insert a horizontal ruler (horizontal line)"
+msgstr ""
+
+#: markdowneditor.buttons.inc:190
+msgid "Help"
+msgstr ""
+
+#: markdowneditor.module:0
+msgid "markdowneditor"
+msgstr ""
+
+#: markdowneditor.install:18
+msgid "Markdown Editor for BUEditor successfully installed. Go to !buesettings to set up 'Role-editor assignments' to select the roles that may use it."
+msgstr ""
+
+#: markdowneditor.info:0
+msgid "Markdown Editor for BUEditor"
+msgstr ""
+
+#: markdowneditor.info:0
+msgid "Provides a toolbar for writing Markdown syntax with BUEditor."
+msgstr ""
+
+#: markdowneditor.info:0
+msgid "Other"
+msgstr ""
+

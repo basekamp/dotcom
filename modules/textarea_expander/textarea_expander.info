@@ -1,0 +1,11 @@
+; $Id: textarea_expander.info,v 1.1.2.1 2009/04/10 08:20:14 henrrrik Exp $
+name = Textarea Expander
+description = Makes resizable textarea fields expand and contract dynamically with content.
+core = 6.x
+
+; Information added by drupal.org packaging script on 2009-04-13
+version = "6.x-1.0-beta1"
+core = "6.x"
+project = "textarea_expander"
+datestamp = "1239660751"
+

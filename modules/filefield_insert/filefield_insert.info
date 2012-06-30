@@ -1,0 +1,5 @@
+name = FileField Insert
+description = Assists in inserting uploaded files or images into the body field or other text areas.
+core = 6.x
+package = CCK
+dependencies[] = filefield

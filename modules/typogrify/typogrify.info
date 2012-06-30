@@ -1,0 +1,8 @@
+; $Id: typogrify.info,v 1.6 2009/01/13 12:11:01 mikl Exp $
+
+name = Typogrify
+description = Adds typographic refinements.
+package = "Input filters"
+project = "typogrify"
+core = 6.x
+

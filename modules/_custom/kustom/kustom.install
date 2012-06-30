@@ -1,0 +1,15 @@
+<?php
+// $Id$
+
+/**
+ * @file
+ * Implementation of hook_uninstall().
+ */
+function kustom_uninstall() {
+  // Remove variables.
+  $variables = db_query("SELECT name FROM {variable} WHERE name LIKE 'kustom%%'");
+  while ($variable = db_fetch_object($variables)) {
+    variable_del($variable->name);
+  }
+}
+

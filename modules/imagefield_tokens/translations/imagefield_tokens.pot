@@ -1,0 +1,37 @@
+# $Id: imagefield_tokens.pot,v 1.1 2009/06/11 23:45:08 deciphered Exp $
+#
+# LANGUAGE translation of Drupal (general)
+# Copyright YEAR NAME <EMAIL@ADDRESS>
+# Generated from files:
+#  imagefield_tokens.module,v 1.7 2009/04/27 01:22:29 deciphered
+#  imagefield_tokens.info,v 1.1 2009/03/19 06:55:40 deciphered
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"POT-Creation-Date: 2009-06-10 14:19+1000\n"
+"PO-Revision-Date: YYYY-mm-DD HH:MM+ZZZZ\n"
+"Last-Translator: NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <EMAIL@ADDRESS>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
+
+#: imagefield_tokens.module:41
+msgid "!title replacement patterns"
+msgstr ""
+
+#: imagefield_tokens.info:0
+msgid "ImageField Tokens"
+msgstr ""
+
+#: imagefield_tokens.info:0
+msgid "Adds Node tokens to ImageFields ALT and Title text fields."
+msgstr ""
+
+#: imagefield_tokens.info:0
+msgid "CCK"
+msgstr ""
+

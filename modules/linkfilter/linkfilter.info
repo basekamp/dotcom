@@ -1,0 +1,5 @@
+; $Id$
+package = Input filters
+name = Link filter
+description = "[l:URL text] text filter for internal or external web links."
+core = 6.x

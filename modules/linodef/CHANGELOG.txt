@@ -1,0 +1,61 @@
+// $Id: CHANGELOG.txt,v 1.1.2.11 2009/07/06 12:02:01 roidanton Exp $
+
+Linodef 6.x-1.0-dev, 2009-xx-xx
+-------------------------------
+
+
+Linodef 6.x-1.0-rc3, 2009-07-06
+-------------------------------
+- Updated documentation.
+#510882 by Roi Danton: Fixed wrong arguments in hook_theme of Buttons API.
+- Added classes to each filtered link.
+- Changed autocomplete data caching from variables to cache table.
+- Changed Buttons API tag option to path conversion to hex so tag options may contain every valid character, now.
+- Changed tag option validation so Filter and Buttons API are using the identical function.
+- Fixed inconsistency in indentations and switched from spaces to tabs.
+#350085 by Roi Danton: Added the usage of views to create button lists. All view options except the view fields layout are heeded See also http://drupal.org/node/342132.
+- Fixed forwarding of options from Buttons API to Javascript function so it supports "" for option values properly.
+- Added list of all views to Buttons API.
+- Fixed linktext support for views.
+- Added inline comment.
+- Added default Drupal message classes to Linodef inline messages.  Works only if HTML input filter allows span tags.
+#434656 by Roi Danton: Fixed unwanted space following embedded elements. Now this space is included only in case an inline message is shown. Thanks to tonycpsu for reporting.
+- Updated documentation for hints about using embedding of views especially regarding the influence of the HTML filter to the view display.
+#434656 by Roi Danton: Added the option linktext="text". Though node link tag <#nid>text</#> is still available it is marked as deprecated.
+#434656 by Roi Danton: Optimized regex for feature and performance enhancements. Now option values enclosed by "" may contain almost all 8-bit characters.
+#357319 by druppi: Added backwards compatibility for RC1 syntax.
+- Added input filter sort order information to the documentation.
+#357319 by druppi: Removed needless check_markup of fields since it caused bugs and confusion.
+- Added view embedding including arguments, displays and pure title linking. There are still style issues to be solved due to the changes other filters apply to the embedded view.
+- Changed dependency for taxonomy module, now optional.
+- Updated messages to support the new features.
+
+Linodef 6.x-1.0-rc2, 2008-12-03
+-------------------------------
+#329424 by Roi Danton: Added autocomplete and list popup window.
+- Added new submodule: Excluded the API from the default Linodef module due to its new requirements and created Linodef Buttons API.
+- Renamed folder for submodule BUEditor Buttons to from linodef_bueditor to linodef_buttons_bueditor.
+- Renamed submodule Linodef BUEditor Buttons to Linodef Buttons - BUEditor.
+#329424 by Roi Danton: Changed code for the BUEditor Buttons to include the button types. Upgrade the code of your BUEditor Buttons! (see help or cvs files included into the submodule)
+#335438 by Roi Danton: Added support for CCKs Content Permissions.
+#335433 by Roi Danton: Added "pass-through" of filtered layout of embedded fields.
+#329424 by Roi Danton: Added stylesheet for popup/autocomplete windows of Buttons API.
+#329424 by Roi Danton: Added explanation inside popup/autocomplete windows.
+#329424 by Roi Danton: Added close button to popup/autocomplete windows.
+#337302 by Roi Danton: Added titles to the button list. Titles contain tags.
+#337299 by Roi Danton, druppi: Changed syntax to provide more flexibility, enables the inclusion of options and comments. Check your tags that are already included!
+- Added admin settings page for Linodef and Linodef API to support the following feature additions.
+#329874 by Roi Danton: Added automatic inclusion of comments by buttons.
+#337302 by Roi Danton: Added different possibilities to sort button lists.
+#335438 by Roi Danton: Added customizable access denied message.
+#337299 by Roi Danton: Added new filter option to provide an easy connection between multilanguage nodes.
+#337299 by Roi Danton: Changed code for the BUEditor Buttons again to exchange $no_link with the new tag options. Upgrade the code of your BUEditor Buttons! (see help or cvs files included into the submodule)
+- Implemented message handling methods: levels and locations.
+- Revised message function to support drupal_set_message and message handling methods.
+- Updated Filter tips.
+- Updated documentation to reflect all those new features.
+- Updated pot and po files.
+
+Linodef 6.x-1.0-rc1, 2008-11-01
+-------------------------------
+Initial Release of Linodef for Drupal 6.x

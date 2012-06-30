@@ -1,0 +1,420 @@
+<?php
+// Version 1.2, May 2008 - Drupal 6.x
+/**
+ * "Link filter" Drupal module, replaces [l:URL text] input tags.
+ * Also replaces [acidfree:node-id] tags. Used for 4.7 -> 6.2 upgrade.
+ *
+ * [l:URL text] text filter for internal Drupal or external Web links.
+ * "text" is optional, and can be multiple words. URL can be any URL -
+ * an alias, or any Drupal path, or a non-Drupal path with full
+ * http://URL notation.
+ * This is converted to a HTML href tag, prefixed with:
+ * 1) $base_root if the URL begins with a / character
+ * 2) no prefix if the URL has a : in it, example: http: or ftp: etc
+ * 3) converted with Drupal l() function in all other cases,
+ *    for example recipe/boil-potatoes  or node/231
+ *    In this case, the URL is considered to be a Drupal system path.
+ * 
+ * Appropriate class="linkfilter-<type>" tag will be added, from this list:
+ * linkfilter-drupal, linkfilter-local, linkfilter-urlfull,
+ * linkfilter-mailto, linkfilter-drupal-node-<node_type>
+ * See the linkfilter.css file for examples and link icons available for use
+ * with these classes.
+ * 
+ * [l:recipe/boil-potatoes link text]
+ *    ==>
+ * <a href="http://..../drupal-dir/recipe/boil-potatoes">link text</a>
+ * 
+ * For non-Drupal paths:
+ * Space " " and right square bracket ] need to be escaped in URL and text.
+ * in URL:  For space use %20. For right square bracket ] use %5D or &#93;
+ * in text: For right square bracket ] use &#93;
+ * Note that Drupal l() is not used because it munges special characters
+ * and query tags like after the ? character in the URL.
+ *
+ * For Drupal paths:
+ * As of version 0.7, uses Drupal l() function to create HTML for the
+ * link. This will allow [l:node/281] to be changed to the alias, if any
+ * for node/281.
+ *
+ * ---
+ * syntax borrowed from wiki example: [http://www.example.com Example site]
+ *
+ * Added l: prefix to allow normal use of square brackets [ ] so that
+ * only prefixed content gets transformed.
+ * ---
+ *
+ *License
+ *This work is hereby released into the Public Domain.
+ *To view a copy of the public domain dedication, visit
+ *http://creativecommons.org/licenses/publicdomain/ or send a letter to
+ *Creative Commons, 559 Nathan Abbott Way, Stanford, California 94305, USA.
+ *
+ *Author: Avinash Chopde <avinash@acm.org>
+ *Created: April 2007
+ *http://www.aczoom.com/cms/software/web/link-filter-drupal-module
+ */
+
+// ==================================================================
+define("LINKFILTER_NODE_PATH_PREFIX",            "node/");
+define("LINKFILTER_CLASS_LOCAL",                "linkfilter-local");
+define("LINKFILTER_CLASS_URLFULL",              "linkfilter-urlfull");
+define("LINKFILTER_CLASS_MAILTO",               "linkfilter-mailto");
+define("LINKFILTER_CLASS_DRUPAL",               "linkfilter-drupal");
+define("LINKFILTER_CLASS_DRUPAL_NODE_SUBSTR",   "-node-");
+// ==================================================================
+/**
+ * Implementation of hook_help().
+ * This description is shown in the listing at admin/modules.
+ */
+function linkfilter_help($path, $arg) {
+  switch ($path) {
+    case 'admin/modules#description':
+      return t('Replace internal Drupal or external Web links using [l:URL text] input tags.');
+  }
+} 
+
+// ==================================================================
+/**
+ * Implementation of hook_filter_tips().
+ */
+function linkfilter_filter_tips($delta, $format, $long = FALSE) {
+  if ($delta != 0) {
+    return '';
+  }
+  if ($long) {
+    return t('<h2><a name="linkfilter"></a>Link Filter tag tips</h2>
+    Link filter tags [l:URL text] in the input text will be replaced with a
+    link to the given URL, which can be a Drupal link, an external web link,
+    or a local non-Drupal link. Prefixes representing the site url and
+    the Drupal path are added, as appropriate:
+    <br />
+    1) Site url is prefixed if URL begins with a / character
+    <br />
+    2) No prefix is added if the URL has a : in it, as in http: or ftp: etc
+    <br />
+    3) Site url with Drupal base directory is prefixed in all other
+    cases, this is handled by calling the Drupal l() function.
+    <br />
+
+    Examples, assuming site is at http://example.com, and Drupal is
+    installed in a sub-directory named drupal:
+    <br />
+    [l:node/281 Blue Sun] ==> &lt;a...
+    href="http://example.com/drupal/travel/blue-sun" ...&gt;Blue Sun&lt;/a&gt;
+    <br />
+    Above example assumes that node/281 is aliased to travel/blue-sun.
+    <br />
+    [l:travel/blue-sun Blue &lt;em&gt;Sun&lt;/em&gt] ==> &lt;a... href="http://example.com/drupal/travel/blue-sun" ...&gt;Blue &lt;em&gt;Sun&lt;/em&gt;&lt;/a&gt;
+    <br />
+    [l:travel/blue-sun] ==> &lt;a... href="http://example.com/drupal/travel/blue-sun" ...&gt;Blue Sun&lt;/a&gt;
+    <br />
+    Above example assumes that the title of the travel/blue-sun node is Blue Sun.
+    <br />
+    [l:/pub/download.zip Download] ==> &lt;a... href="http://example.com/pub/download.zip" ...&gt;Download&lt;/a&gt;
+    <br />
+    [l:http://www.example.com/ Example Web Site!] ==> &lt;a... href="http://www.example.com/" ...&gt;Example Web Site!&lt;/a&gt;
+    <br />
+    For non-Drupal paths:
+    Characters space " " and right square bracket "]" cannot be used in
+    URL or text but can be substituted.
+    For space use &amp;#32; and for right square bracket ] use &amp;#93;
+    <br />
+    In text tag, space characters can be used as is. For right square
+    bracket ] use &amp;#93; or &amp;#x5D;
+    <br />
+    For Drupal paths:
+    Both the URL and text parts are passed to the Drupal function l()
+    which calls the Drupal function url(). 
+    Since the Drupal function l() is called, Drupal system paths such as
+    node/281 will be converted automatically to aliases, if present.
+    <br />
+    CSS class tags "linkfilter-drupal" (for Drupal paths), "linkfilter-local"
+    (links starting with /), "linkfilter-urlfull" (http:// links),
+    "linkfilter-drupal-node-&lt;node_type&gt;" (for Drupal paths that point
+    to a Drupal node), "linkfilter-mailto" (mailto:// links), are
+    inserted in the HTML A tag as appropriate.
+    ');
+  }
+
+  return t('[l:URL text] input tags replaced with HTML links. URL may be Drupal internal path. [ !Link Filter Tips ]', array('!Link Filter Tips' => l(t('Link Filter Tips'), "filter/tips/$format", array('fragment' => 'linkfilter'))));
+} 
+
+// ==================================================================
+/**
+ * Implementation of hook_init().
+   Pre Drupal 6.1, this was hook_menu($may_cache),
+   a good place to put code which should run exactly once
+   per page view. Put it in an if (!$may_cache) block.
+ */
+
+function linkfilter_init() {
+  $linkfilter_base = drupal_get_path('module', 'linkfilter');
+  drupal_add_css("$linkfilter_base/linkfilter.css");
+}
+// ==================================================================
+/**
+ * Implementation of hook_filter().
+ */
+function linkfilter_filter($op, $delta = 0, $format = -1, $text = '') {
+  if ($op == 'list') {
+    return array(0 => t('Link Filter'));
+  }
+
+  if ($delta != 0) {
+    return '';
+  }
+
+  // only one filter, so not checking $delta
+  switch ($op) {
+    // This description is shown in the administrative interface, unlike the
+    // filter tips which are shown in the content editing interface.
+    case 'description':
+      return t('Replace internal Drupal or external non-Drupal links using [l:URL text] input tags.');
+
+    // don't need "prepare", but need to return text as-is
+    case 'prepare':
+      return $text;
+
+    // Substitute "[l:URL text]
+    case 'process':
+      return linkfilter_process_string($text);
+  }
+}
+
+// ------------------------------------------------------------------------
+/*
+ * Scan through $string, replacing all occurrences of [l:...] tags
+ * and acidfree: tags too
+ */
+function linkfilter_process_string($string) {
+  $replaced = preg_replace_callback("/\[l:([^]\s]*)\s*([^]]*)?\]/",
+                                    '_linkfilter_replace_callback',
+                                    $string);
+
+  $replaced = preg_replace_callback("@\[acidfree:([0-9]*)([^\\]]*)\]@i",
+                                    '_l_acidfree_filter_tag',
+                                    $replaced);
+  return $replaced;
+}
+
+// ------------------------------------------------------------------------
+/*
+ * Replace text of a single tag - used in preg_replace_callback.
+ *
+ * Only Drupal paths are passed to l().
+ * Non-Drupal paths are manually constructed, by copying input
+ * without calling php urlencode(), and not calling the Drupal l() function
+ * http://api.drupal.org/api/5/function/l
+ * l() only handles menu paths or absolute urls, it cannot handle local
+ * links that may be non-drupal paths if Drupal is installed in a
+ * sub-directory.
+ * Menu paths details: http://api.drupal.org/api/HEAD/group/menu
+ * Additionally, URL may include query (?a=b...) and fragments (#name),
+ * calling l() would require splitting the URL, and re-composing.
+ * The goal of this filter is to keep orignal text in the tag as much
+ * unchanged as possible, just prefix with $base_root or $base_url and
+ * be done with it for non-Drupal paths.
+ * Calling l() for Drupal paths also helps create aliases when present.
+ *
+ * Always creates absolute URL, example http://...
+ * 
+ *------------------------------------------------------------------------
+ */
+
+function _linkfilter_replace_callback($matches) {
+  $tag = $matches[0];
+  // URL: preserve input characters as much as possible, for the URL
+  // have to do a decode_entities to eliminate any HTMLspecialchars, but
+  // all url escapes %nn will be passed unchanged
+  $urlfull = decode_entities($matches[1]);
+  if (is_null($urlfull) || ($urlfull == '')) {
+    return $tag;
+  }
+
+  // text: doing a decode_entities/check_plain  conversion (Drupal API)
+  $text = decode_entities($matches[2]);
+
+  if ($urlfull[0] == '/') {
+    // non-drupal 1) $base_root if the URL begins with a / character
+    global $base_root;
+    $prefix = $base_root;
+    $class = LINKFILTER_CLASS_LOCAL;
+  } elseif (strpos($urlfull, ':') === FALSE) {
+    // drupal 3) $base_url in all other cases, for example recipe/boil-potatoes
+    // global $base_url;
+    // $prefix = $base_url . '/'; # use this if not calling Drupal l()
+    $prefix = ''; # use '' if calling Drupal l(), since it will prefix with $base_url
+
+    $class = LINKFILTER_CLASS_DRUPAL;
+    $node = _linkfilter_get_node_from_path($urlfull);
+    if ($node && $node->type) {
+      $class .= LINKFILTER_CLASS_DRUPAL_NODE_SUBSTR . $node->type;
+    }
+    // if no text provided, use node title if present
+    if ((is_null($text) || ($text == '')) && ($node && $node->title)) {
+      $text = $node->title;
+    }
+  } else {
+    // non-drupal 2) no prefix if the URL has a : in it, example: http: or ftp:
+    $prefix = '';
+    $mailto_str = "mailto:";
+    if (strncasecmp($urlfull, $mailto_str, strlen($mailto_str)) == 0) {
+      $class = LINKFILTER_CLASS_MAILTO;
+    } else { 
+      $class = LINKFILTER_CLASS_URLFULL;
+    }
+  }
+
+  // if no text provided, use URL
+  if (is_null($text) || ($text == '')) {
+    $text = $urlfull;
+  }
+
+  // create the HTML <a href ...> tag
+  if (strncasecmp($class, LINKFILTER_CLASS_DRUPAL, strlen(LINKFILTER_CLASS_DRUPAL)) == 0) {
+
+    // drupal l() needs query/fragment split out
+    $path = $urlfull;
+    if (strpos($path, '#') !== FALSE) {
+      list($path, $fragment) = explode('#', $path, 2);
+    }
+    if (strpos($path, '?') !== FALSE) {
+      list($path, $query) = explode('?', $path, 2);
+    }
+
+    $replaced = l($text, $path,
+      array('attributes' => array('class' => $class),
+            'query' => $query,
+            'fragment' => $fragment,
+            'html' => TRUE,
+            'absolute' => TRUE));
+      # attributes => <a href> attributes, like class
+      # absolute => TRUE/FALSE
+
+  } else {
+    $replaced = '<a href="' . $prefix . $urlfull .
+                '" class="' . $class .
+                '">' . check_plain($text) . '</a>';
+  }
+
+  return $replaced;
+}
+
+// ------------------------------------------------------------------------
+/*
+ * Given a alias or a system path, return node object, if it is of the
+ * form "node/<id>"
+ * The object will contain nid, and title
+ * Note: the $path, if an alias, should not end in / since the
+ * drupal_get_normal_path function will fail to get the source,
+ * even though the web browser will display that page with ending / correctly.
+ */
+function _linkfilter_get_node_from_path($path) {
+  $n_path = drupal_get_normal_path($path);
+  $nid_str = '';
+
+  if (strncasecmp($n_path, LINKFILTER_NODE_PATH_PREFIX, strlen(LINKFILTER_NODE_PATH_PREFIX)) == 0) {
+    $nid_str = substr($n_path, strlen(LINKFILTER_NODE_PATH_PREFIX));
+  }
+
+  if (!is_numeric($nid_str)) {
+    return 0;
+  }
+
+  // get only the fields needed
+  $node = db_fetch_object(db_query('SELECT n.nid, n.vid, n.type, r.title FROM {node} n INNER JOIN {node_revisions} r ON r.vid = n.vid WHERE n.nid = %d', $nid_str));
+
+  //$node = node_load($nid_str); // this loads all fields, so may be expensive call
+
+  // here's the call in node.module that gets all the data
+  //$node = db_fetch_object(db_query('SELECT n.nid, n.vid, n.type, n.status, n.created, n.changed, n.comment, n.promote, n.moderate, n.sticky, r.timestamp AS revision_timestamp, r.title, r.body, r.teaser, r.log, r.format, u.uid, u.name, u.picture, u.data FROM {node} n INNER JOIN {users} u ON u.uid = n.uid INNER JOIN {node_revisions} r ON r.vid = n.vid WHERE n.nid = %d', $nid));
+
+  return $node;
+}
+
+// ------------------------------------------------------------------------
+/* tags we recognize:
+ *   style => css style info for the image
+ *   size => image size in pixels (can be WxH or just largest dimension)
+ *   title => caption to put under image
+ *   link => link that the image links to (or none for no link)
+ *   popup => true for link to be a popup
+ *   align => float left or right
+ *   class => class for the image
+ * Copied from acidfree.module, used temporarily when upgraded from
+ * Drupal 4.7 to 6.2, and in 6.2, no longer using Acidfree, have moved
+ * to using Image Galleries from image module.
+ * Only image tags are replaced, no acidfree album tags will be replaced.
+ * Only tags needed:   align
+ * Later, replace acidfree:nnn with l-thumb:? 
+ */
+
+function _l_acidfree_filter_tag($matches) {
+    //$node = acidfree_get_node_by_id($matches[1]);
+    $node = node_load($matches[1]);
+
+    if (!$node) {
+        return "<span style='color: #f00;'>{$matches[0]}</span>";
+    } else {
+        $args = preg_replace("/[ \\r\\n\\t]+/", ' ', $matches[2]);
+        $match_count = preg_match_all("/([-\w]+)=(([^'\" ]+)|'([^']*)'|\"([^\"]*)\")/i", $args, $pairs);
+        $names = $pairs[1];
+        for ($i=0;$i<count($names); $i++) {
+            if ($pairs[3][$i])
+                $values[] = $pairs[3][$i];
+            elseif ($pairs[4][$i])
+                $values[] = $pairs[4][$i];
+            elseif ($pairs[5][$i])
+                $values[] = $pairs[5][$i];
+        }
+        $use_caption = false;
+        $settings = Array(
+                'align' => 'left',
+                'type' => 'image',
+                'link' => "node/{$node->nid}",
+                'popup' => false,
+            );
+        foreach ($names as $index => $name) {
+            $name = strtolower(trim($name));
+            $value = trim($values[$index]);
+            $lvalue = strtolower($value);
+            $settings[$name] = $value;
+        }
+        $ret = "<span class='filter-thumb' style='float: {$settings['align']};'>";
+        if ($settings['type'] != 'slide') {
+            $filepath = file_create_path($node->images['thumbnail']);
+            $fileurl = file_create_url($node->images['thumbnail']);
+
+            $f_dim = getimagesize($filepath);
+            if (!$f_dim) 
+                return "<span style='color: #f00;'>{$matches[0]}</span>";
+            $width = $f_dim[0]; $height = $f_dim[1];
+            if ($settings['link'] == 'none') {
+                $ret .= theme('image', $fileurl, $node->title, $node->title, 
+                            array('class' => "acidfree-plain {$settings['class']}",
+                                'width' => $width, 'height' => $height,
+                                'style' => $settings['style']), false);
+            } else {
+                $attributes = $settings['popup']?array('target'=>'blank_'):NULL;
+                $ret .= l(theme('image', $fileurl, $node->title, $node->title, 
+                            array('class' => "acidfree-plain {$settings['class']}",
+                                'width' => $width, 'height' => $height,
+                                'style' => $settings['style']), false),
+                        $settings['link'],
+                        array('attributes' => $attributes,
+                              'html' => TRUE,
+                              'absolute' => TRUE));
+            }
+        } else {
+            return "<span style='color: #f00;'>{$matches[0]}</span>";
+        }
+        if ($settings['title']) {
+            $ret .= "<div class='filter-thumb-title'>{$settings['title']}</div>";
+        }
+        $ret .= "</span>";
+        return $ret;
+    }
+}
+// ------------------------------------------------------------------------
+

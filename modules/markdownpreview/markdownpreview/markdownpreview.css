@@ -1,0 +1,10 @@
+.markdown-preview label {
+  font-weight:bold;
+}
+div.markdown-preview div {
+  margin:10px 0;
+  padding:5px 1%;
+  width:98%;
+  background-color:#ffffcc;
+  border:1px solid #222;
+}

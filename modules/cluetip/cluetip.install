@@ -1,0 +1,16 @@
+<?php
+// $Id: cluetip.install,v 1.1.2.1 2009/02/10 09:23:57 acm Exp $
+
+/**
+ * @file
+ * Installation functions for cluetip.
+ */
+
+/**
+ * Implementation of hook_install().
+ */
+function cluetip_install() {
+  if (function_exists('jq_plugins')) {
+    jq_plugins('cluetip', FALSE, TRUE);
+  }
+}

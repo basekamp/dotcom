@@ -1,0 +1,7 @@
+; $Id: linodef.info,v 1.1.2.3 2009/04/23 12:30:14 roidanton Exp $
+name = Linodef
+description = A filter module which provides tags to embed (parts of) Drupal elements and create corresponding links
+dependencies[] = content
+dependencies[] = text
+package = Linodef
+core = 6.x
