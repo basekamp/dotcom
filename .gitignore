@@ -1,0 +1,2 @@
+# Ignore Mac OS X storage files.
+*.DS_Store
