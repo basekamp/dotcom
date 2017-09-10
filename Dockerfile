@@ -13,7 +13,7 @@ RUN curl --silent --output /tmp/composer-setup.php https://getcomposer.org/insta
     rm /tmp/composer-setup.php
 
 # Drush.
-RUN composer global require drush/drush:8.1.13 --prefer-dist && \
+RUN composer global require drush/drush:8.1.13 && \
     ln -s /root/.composer/vendor/bin/drush /usr/local/bin/drush
 
 # Go TPL.
