@@ -29,7 +29,7 @@ WORKDIR /var/www/html
 COPY html .
 RUN mkdir sites/default/files && chmod a+w sites/default/files && \
     gotpl /etc/gotpl/settings.php.tpl > sites/default/settings.php && \
-    chown -R $APACHE_RUN_USER:$APACHE_RUN_GROUP /var/www/html
+    chown -R www-data:www-data /var/www/html
 
 EXPOSE 80
 CMD ["apache2-foreground"]
