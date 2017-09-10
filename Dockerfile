@@ -31,5 +31,5 @@ RUN mkdir sites/default/files && chmod a+w sites/default/files && \
     gotpl /etc/gotpl/settings.php.tpl > sites/default/settings.php && \
     chown -R www-data:www-data /var/www/html
 
-EXPOSE 80
+EXPOSE 80 443
 CMD ["apache2-foreground"]
