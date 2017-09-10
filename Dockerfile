@@ -16,10 +16,8 @@ RUN curl --silent --output /tmp/composer-setup.php https://getcomposer.org/insta
 RUN composer global require drush/drush:8.1.13 && \
     ln -s /root/.composer/vendor/bin/drush /usr/local/bin/drush
 
-# Go TPL.
+# Go TPL for Drupal settings file.
 RUN wget -qO- ${GOTPL_URL} | tar xz -C /usr/local/bin
-
-ENV DRUPAL_SETTINGS_PATH ${DRUPAL_SETTINGS_PATH:-}
 ENV MARIADB_HOST ${MARIADB_HOST:-}
 ENV MARIADB_DATABASE ${MARIADB_DATABASE:-}
 ENV MARIADB_USER ${MARIADB_USER:-}
