@@ -1,6 +1,6 @@
 <?php
 
-$db_url = "mysql://{getenv('MARIADB_USER')}:{getenv('MARIADB_PASSWORD')}@{getenv('MARIADB_HOST')}/{getenv('MARIADB_DATABASE')}";
+$db_url = 'mysql://{{ getenv "MARIADB_USER" }}:{{ getenv "MARIADB_PASSWORD" }}@{{ getenv "MARIADB_HOST" }}/{{ getenv "MARIADB_DATABASE" }}';
 $db_prefix = '';
 
 $update_free_access = FALSE;
