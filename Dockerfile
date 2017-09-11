@@ -38,10 +38,14 @@ COPY templates /etc/gotpl/
 
 WORKDIR /var/www/html
 
-COPY html .
-RUN mkdir sites/default/files && chmod a+w sites/default/files && \
-    gotpl /etc/gotpl/settings.php.tpl > sites/default/settings.php && \
-    chown -R www-data:www-data /var/www/html
+# Helm stable/drupal with persistence overwrites the volume mount to {}, so we
+# perform file operations in this temporary directory, then move /html back to
+# WORKDIR at runtime via docker-php-entrypoint.
+COPY html /html
+RUN mkdir /html/sites/default/files && chmod a+w /html/sites/default/files && \
+    gotpl /etc/gotpl/settings.php.tpl > /html/sites/default/settings.php && \
+    chown -R www-data:www-data /html
+COPY docker-drupal-entrypoint /usr/local/bin/
 
 EXPOSE 80 443
-CMD ["apache2-foreground"]
+CMD ["docker-drupal-entrypoint"]

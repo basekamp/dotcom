@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+if [ -f .initialized ]; then
+  echo 'Drupal is already initialized.'
+else
+  touch .initialized
+
+  # If we get this far, move Drupal files in place.
+  mv /html/* /html/.htaccess /var/www/html
+fi
+
+apache2-foreground
