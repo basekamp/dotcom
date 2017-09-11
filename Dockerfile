@@ -4,8 +4,20 @@ ENV GOTPL_VER 0.1.5
 ENV GOTPL_URL https://github.com/wodby/gotpl/releases/download/${GOTPL_VER}/gotpl-linux-amd64-${GOTPL_VER}.tar.gz
 
 RUN apt-get update && apt-get install -y \
-    wget \
-    zip
+        wget \
+        zip \
+        mysql-client \
+        php5-gd \
+        php5-json \
+        php5-mysql \
+        php5-xmlrpc \
+        php5-xsl && \
+    apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# PHP.
+RUN echo 'memory_limit = 512M' >> /usr/local/etc/php/conf.d/local.ini && \
+    echo 'upload_max_filesize = 100M' >> /usr/local/etc/php/conf.d/local.ini && \
+    echo 'post_max_size = 100M' >> /usr/local/etc/php/conf.d/local.ini
 
 # Composer.
 RUN curl --silent --output /tmp/composer-setup.php https://getcomposer.org/installer && \
