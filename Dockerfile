@@ -3,18 +3,25 @@ FROM php:5-apache
 ENV GOTPL_VER 0.1.5
 ENV GOTPL_URL https://github.com/wodby/gotpl/releases/download/${GOTPL_VER}/gotpl-linux-amd64-${GOTPL_VER}.tar.gz
 
+RUN docker-php-ext-install mysql mysqli pdo pdo_mysql
 RUN apt-get update && apt-get install -y \
+        # Recommended by Drupal.
         wget \
+        # Needed to install drush at runtime without git.
         zip \
+        # Needed for drush to perform sql operations.
         mysql-client \
+        # Needed for Drupal.
         php5-gd \
         php5-json \
-        php5-mysql \
         php5-xmlrpc \
         php5-xsl && \
     apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# PHP.
+# Apache mods.
+RUN a2enmod rewrite
+
+# PHP config.
 RUN echo 'memory_limit = 512M' >> /usr/local/etc/php/conf.d/local.ini && \
     echo 'upload_max_filesize = 100M' >> /usr/local/etc/php/conf.d/local.ini && \
     echo 'post_max_size = 100M' >> /usr/local/etc/php/conf.d/local.ini
@@ -43,7 +50,6 @@ WORKDIR /var/www/html
 # WORKDIR at runtime via docker-php-entrypoint.
 COPY html /html
 RUN mkdir /html/sites/default/files && chmod a+w /html/sites/default/files && \
-    gotpl /etc/gotpl/settings.php.tpl > /html/sites/default/settings.php && \
     chown -R www-data:www-data /html
 COPY docker-drupal-entrypoint /usr/local/bin/
 

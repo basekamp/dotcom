@@ -9,4 +9,7 @@ else
   mv /html/* /html/.htaccess /var/www/html
 fi
 
+gotpl /etc/gotpl/settings.php.tpl > sites/default/settings.php
+chown www-data:www-data sites/default/settings.php
+
 apache2-foreground
