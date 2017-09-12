@@ -11,12 +11,22 @@ RUN apt-get update && apt-get install -y \
         zip \
         # Needed for drush to perform sql operations.
         mysql-client \
-        # Needed for Drupal.
-        php5-gd \
+        # Other for Drupal.
         php5-json \
         php5-xmlrpc \
         php5-xsl && \
     apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# GD toolkit needs more love.
+# See: https://github.com/docker-library/php/issues/322#issuecomment-299255477
+RUN apt-get update && apt-get install -y \
+		libfreetype6-dev \
+		libjpeg62-turbo-dev \
+		libmcrypt-dev \
+		libpng12-dev \
+	&& docker-php-ext-install -j$(nproc) iconv mcrypt \
+	&& docker-php-ext-configure gd --with-freetype-dir=/usr/include/ --with-jpeg-dir=/usr/include/ \
+	&& docker-php-ext-install -j$(nproc) gd
 
 # Apache mods.
 RUN a2enmod rewrite
