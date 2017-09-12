@@ -1,0 +1,37 @@
+image: gcr.io/farmotive-com/basekamp-com:0.3.1
+imagePullPolicy: Always
+volumeMounts:
+  drupal:
+    mountPath: /var/www/html
+  apache:
+    mountPath: false
+extraVars:
+- name: MARIADB_DATABASE
+  value: drupal
+- name: MARIADB_USER
+  value: drupal
+- name: MARIADB_PASSWORD
+  # See LastPass.
+  value: OBFUSCATED
+mariadb:
+  mariadbDatabase: drupal
+  mariadbUser: drupal
+  # See LastPass.
+  mariadbPassword: OBFUSCATED
+# See simplenote k8s m1gr8. livenessProbe and readinessProbe must be commented
+# out of local chart for this to work. Unfortunately this addition to Helm 2.6.0
+# doesn't work for struct keys: https://github.com/kubernetes/helm/pull/2648
+# To-do: Fix this in upcoming helm release so we can use stable/drupal with no
+# local modifications needed to delete struct keys (via NULL technique).
+livenessProbe:
+  exec:
+    command:
+    - cat
+    - CHANGELOG.txt
+  initialDelaySeconds: 240
+readinessProbe:
+  exec:
+    command:
+    - php
+    - --version
+  initialDelaySeconds: 30
