@@ -24,7 +24,10 @@ RUN a2enmod rewrite
 # PHP config.
 RUN echo 'memory_limit = 512M' >> /usr/local/etc/php/conf.d/local.ini && \
     echo 'upload_max_filesize = 100M' >> /usr/local/etc/php/conf.d/local.ini && \
-    echo 'post_max_size = 100M' >> /usr/local/etc/php/conf.d/local.ini
+    echo 'post_max_size = 100M' >> /usr/local/etc/php/conf.d/local.ini && \
+    # Disable errors on production.
+    echo 'error_reporting = E_ALL & ~E_NOTICE & ~E_WARNING' >> /usr/local/etc/php/conf.d/local.ini && \
+    echo 'error_Reporting = off'  >> /usr/local/etc/php/conf.d/local.ini
 
 # Composer.
 RUN curl --silent --output /tmp/composer-setup.php https://getcomposer.org/installer && \
