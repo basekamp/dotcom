@@ -13,11 +13,16 @@ extraVars:
 - name: MARIADB_PASSWORD
   # See LastPass.
   value: OBFUSCATED
+persistence:
+  drupal:
+    size: 1Gi
 mariadb:
   mariadbDatabase: drupal
   mariadbUser: drupal
   # See LastPass.
   mariadbPassword: OBFUSCATED
+  persistence:
+    size: 1Gi
 # See simplenote k8s m1gr8. livenessProbe and readinessProbe must be commented
 # out of local chart for this to work. Unfortunately this addition to Helm 2.6.0
 # doesn't work for struct keys: https://github.com/kubernetes/helm/pull/2648
