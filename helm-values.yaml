@@ -1,4 +1,4 @@
-image: gcr.io/farmotive-com/basekamp-com:0.3.1
+image: gcr.io/farmotive-com/basekamp-com:0.3.3
 volumeMounts:
   drupal:
     mountPath: /var/www/html

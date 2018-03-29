@@ -1,6 +1,6 @@
 <?php
 
-$db_url = 'mysql://{{ getenv "MARIADB_USER" }}:{{ getenv "MARIADB_PASSWORD" }}@{{ getenv "MARIADB_HOST" }}/{{ getenv "MARIADB_DATABASE" }}';
+$db_url = 'mysql://{{ getenv "DRUPAL_DATABASE_USER" }}:{{ getenv "DRUPAL_DATABASE_PASSWORD" }}@{{ getenv "MARIADB_HOST" }}/{{ getenv "DRUPAL_DATABASE_NAME" }}';
 $db_prefix = '';
 
 $update_free_access = FALSE;
