@@ -1,0 +1,5 @@
+* D6 security patch SA-CORE-2018-002
+  - See https://www.drupal.org/sa-core-2018-002
+  - See https://groups.drupal.org/security/faq-2018-002
+  - See https://www.mydropwizard.com/blog/drupal-6-highly-critical-security-release-march-28th-psa-2018-001
+  - See https://www.mydropwizard.com/blog/highly-critical-drupal-core-security-update-sa-core-2018-002-including-drupal-6
