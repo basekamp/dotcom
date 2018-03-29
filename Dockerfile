@@ -3,7 +3,6 @@ FROM php:5-apache
 ENV GOTPL_VER 0.1.5
 ENV GOTPL_URL https://github.com/wodby/gotpl/releases/download/${GOTPL_VER}/gotpl-linux-amd64-${GOTPL_VER}.tar.gz
 
-RUN docker-php-ext-install mysql mysqli pdo pdo_mysql
 RUN apt-get update && apt-get install -y \
         # Recommended by Drupal.
         wget \
@@ -11,11 +10,14 @@ RUN apt-get update && apt-get install -y \
         zip \
         # Needed for drush to perform sql operations.
         mysql-client \
-        # Other for Drupal.
-        php5-json \
-        php5-xmlrpc \
-        php5-xsl && \
-    apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+        # Needed for xmlrpc and xsl below.
+        # See https://github.com/docker-library/php/issues/75
+        # Caused by https://github.com/docker-library/php/issues/551
+        libxml2-dev \
+        libxslt-dev \
+    && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+RUN docker-php-ext-install mysql mysqli pdo pdo_mysql json xmlrpc xsl
 
 # GD toolkit needs more love.
 # See: https://github.com/docker-library/php/issues/322#issuecomment-299255477
